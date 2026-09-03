@@ -1,0 +1,62 @@
+#!/bin/sh
+# Test double for age(1). Encrypt writes a marker + stdin; decrypt peels it.
+set -eu
+
+if [ "${FW_AGE_FAIL:-0}" = "1" ]; then
+  echo "age stub failing" >&2
+  exit 1
+fi
+
+decrypt=0
+out=""
+identity=""
+infile=""
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -d) decrypt=1 ;;
+    -r) shift ;;
+    -o)
+      out="$2"
+      shift
+      ;;
+    -i)
+      identity="$2"
+      shift
+      ;;
+    -*)
+      echo "age stub: unknown $1" >&2
+      exit 2
+      ;;
+    *)
+      infile="$1"
+      ;;
+  esac
+  shift
+done
+
+if [ "$decrypt" = "1" ]; then
+  src="${infile:-}"
+  if [ -z "$src" ] || [ "$src" = "-" ]; then
+    src="/dev/stdin"
+  fi
+  if [ -n "$identity" ] && [ ! -f "$identity" ]; then
+    echo "age stub: missing identity" >&2
+    exit 1
+  fi
+  if [ -z "$out" ] || [ "$out" = "-" ]; then
+    tail -n +2 "$src"
+  else
+    tail -n +2 "$src" >"$out"
+  fi
+  exit 0
+fi
+
+if [ -z "$out" ]; then
+  echo "age stub: encrypt requires -o" >&2
+  exit 2
+fi
+{
+  echo "AGE-CIPHERTEXT"
+  cat
+} >"$out"

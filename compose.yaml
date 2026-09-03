@@ -1,0 +1,125 @@
+# Forrest's Wallet — VPS compose shape.
+# Three long-running services only. Secrets come from the VPS `.env` at
+# runtime; this file must stay secret-free. Do not run
+# `docker compose config` into git or chat.
+#
+# App image contract (application task owns the Dockerfile):
+#   listen 0.0.0.0:3000, GET /healthz, runtime DATABASE_URL only,
+#   `fw` on PATH (fw migrate | fw open-bootstrap | fw revoke-parent-devices).
+# Admin/migrator secrets must not appear on the long-running app service.
+#
+# Postgres 18 official image stores files under /var/lib/postgresql
+# (VOLUME moved off /var/lib/postgresql/data). Bind-mount that parent
+# directory so `docker compose down -v` cannot erase the ledger.
+
+name: forests-wallet
+
+services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    stop_grace_period: 1m
+    environment:
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER:?POSTGRES_ADMIN_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?POSTGRES_ADMIN_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+    volumes:
+      - type: bind
+        source: ${POSTGRES_DATA_DIR:?POSTGRES_DATA_DIR is required}
+        target: /var/lib/postgresql
+        bind:
+          create_host_path: true
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # No `ports:` — stay on the Compose-internal network.
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: forests-wallet-app:${APP_IMAGE_TAG:-local}
+    restart: unless-stopped
+    init: true
+    environment:
+      # Runtime role only. MIGRATE_DATABASE_URL is injected solely on the
+      # one-shot `fw migrate` command in ops/deploy.sh, never here.
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # No `ports:` — only Caddy is published.
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN is required}
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL is required}
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        host_ip: 0.0.0.0
+      - target: 80
+        published: 80
+        protocol: tcp
+        host_ip: "::"
+      - target: 443
+        published: 443
+        protocol: tcp
+        host_ip: 0.0.0.0
+      - target: 443
+        published: 443
+        protocol: tcp
+        host_ip: "::"
+    volumes:
+      - type: bind
+        source: ./Caddyfile
+        target: /etc/caddy/Caddyfile
+        read_only: true
+      - type: bind
+        source: ${CADDY_DATA_DIR:?CADDY_DATA_DIR is required}
+        target: /data
+        bind:
+          create_host_path: true
+      - type: bind
+        source: ${CADDY_CONFIG_DIR:?CADDY_CONFIG_DIR is required}
+        target: /config
+        bind:
+          create_host_path: true
+    depends_on:
+      app:
+        condition: service_healthy
+    # No image-native HTTP client is guaranteed in caddy:2. Internal
+    # health uses Node in `app`; public HTTPS uses host curl.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

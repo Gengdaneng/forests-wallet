@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+if [ -n "${FW_SSH_LOG:-}" ]; then
+  echo "ssh $*" >>"$FW_SSH_LOG"
+fi
+echo "ssh stub was invoked; dry-run should not reach here" >&2
+exit 99

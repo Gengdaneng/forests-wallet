@@ -1,0 +1,57 @@
+# Public HTTPS terminator for Forrest's Wallet.
+# {$DOMAIN} and {$ACME_EMAIL} come from the container environment.
+# Automatic public ACME (Let's Encrypt / ZeroSSL) needs a real DNS name.
+# Do not expose the admin API; do not add extra diagnostic routes.
+
+{
+	email {$ACME_EMAIL}
+	admin 127.0.0.1:2019
+
+	servers {
+		timeouts {
+			read_body 15s
+			read_header 10s
+			write 30s
+			idle 2m
+		}
+		max_header_size 16KB
+	}
+}
+
+{$DOMAIN} {
+	encode gzip
+
+	header {
+		-Server
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+	}
+
+	request_body {
+		max_size 256KB
+	}
+
+	log {
+		output stdout
+		format filter {
+			wrap json
+			fields {
+				request>headers>Authorization delete
+				request>headers>Cookie delete
+			}
+		}
+	}
+
+	reverse_proxy app:3000 {
+		header_up Host {host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+
+		transport http {
+			dial_timeout 5s
+			response_header_timeout 30s
+			read_timeout 30s
+			write_timeout 30s
+		}
+	}
+}
