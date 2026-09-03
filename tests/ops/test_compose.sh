@@ -112,13 +112,22 @@ else
   pass "no top-level named volumes"
 fi
 
+if grep -E 'CMD.*,?[[:space:]]*curl|"curl"' "$COMPOSE" >/dev/null; then
+  fail "compose healthcheck depends on curl"
+else
+  pass "compose does not use curl in healthchecks"
+fi
+
 if have_cmd docker; then
   export DOMAIN=wallet.example.com
   export ACME_EMAIL=operator@example.com
-  export POSTGRES_USER=forests
-  export POSTGRES_PASSWORD=test-placeholder-not-a-secret
+  export POSTGRES_ADMIN_USER=forests_admin
+  export POSTGRES_ADMIN_PASSWORD=adminpassadminpass1
   export POSTGRES_DB=forests_wallet
-  export DATABASE_URL=postgres://forests:test-placeholder-not-a-secret@postgres:5432/forests_wallet
+  export POSTGRES_MIGRATOR_PASSWORD=migratorpassmigrator1
+  export POSTGRES_RUNTIME_PASSWORD=runtimepassruntime1
+  export DATABASE_URL=postgres://forests_wallet_runtime:runtimepassruntime1@postgres:5432/forests_wallet
+  export MIGRATE_DATABASE_URL=postgres://forests_wallet_migrator:migratorpassmigrator1@postgres:5432/forests_wallet
   export POSTGRES_DATA_DIR=/tmp/fw-ops-test-pgdata
   export CADDY_DATA_DIR=/tmp/fw-ops-test-caddy
   export CADDY_CONFIG_DIR=/tmp/fw-ops-test-caddy-config
@@ -147,6 +156,19 @@ v0 = vols[0]
 assert v0.get("type") == "bind", v0
 src = v0.get("source") or ""
 assert "fw-ops-test-pgdata" in src or "POSTGRES_DATA_DIR" in src, src
+app_env = app.get("environment") or {}
+app_blob = json.dumps(app_env)
+assert "MIGRATE_DATABASE_URL" not in app_blob, app_blob
+assert "adminpassadminpass1" not in app_blob, app_blob
+assert "migratorpassmigrator1" not in app_blob, app_blob
+assert "runtimepassruntime1" in app_blob, app_blob
+assert "forests_wallet_runtime" in app_blob, app_blob
+pg_blob = json.dumps(pg.get("environment") or {})
+assert "adminpassadminpass1" in pg_blob, pg_blob
+assert "migratorpassmigrator1" not in pg_blob, pg_blob
+assert "runtimepassruntime1" not in pg_blob, pg_blob
+hc = json.dumps(caddy.get("healthcheck") or {})
+assert "curl" not in hc, hc
 PY
     then
       pass "rendered compose: 3 services, only caddy 80/443, postgres bind"

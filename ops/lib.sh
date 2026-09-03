@@ -32,7 +32,11 @@ fw_redact_string() {
   local v secret
   for v in \
     POSTGRES_PASSWORD \
+    POSTGRES_ADMIN_PASSWORD \
+    POSTGRES_MIGRATOR_PASSWORD \
+    POSTGRES_RUNTIME_PASSWORD \
     DATABASE_URL \
+    MIGRATE_DATABASE_URL \
     HEALTHCHECKS_URL \
     AGE_IDENTITY \
     AGE_RECIPIENT \
@@ -118,10 +122,44 @@ fw_load_env_file() {
   local f="$1"
   [ -f "$f" ] || fw_die "missing env file: $f"
   fw_require_secret_mode "$f"
+  if grep -E '^[[:space:]]*[^#=].*(\$\(|`)' "$f" >/dev/null 2>&1; then
+    fw_die "env file $f contains command substitution; refuse to source"
+  fi
   set -a
   # shellcheck disable=SC1090
   . "$f"
   set +a
+}
+
+# Passwords that are interpolated into DATABASE_URL and sourced as shell
+# assignments. RFC 3986 unreserved + enough entropy; no @ : / ? # ' " $
+fw_require_safe_secret() {
+  local name="$1"
+  local value
+  value="$(fw_get_var "$name")"
+  [ -n "$value" ] || fw_die "required secret $name is empty or unset"
+  case "$value" in
+    *[!A-Za-z0-9._~-]*)
+      fw_die "$name must be URL/shell-safe (A-Za-z0-9._~- only) so .env sourcing and DATABASE_URL stay intact"
+      ;;
+  esac
+  if [ "${#value}" -lt 16 ]; then
+    fw_die "$name is too short (need >= 16)"
+  fi
+}
+
+fw_require_sql_ident() {
+  local name="$1"
+  local value
+  value="$(fw_get_var "$name")"
+  [ -n "$value" ] || fw_die "required identifier $name is empty or unset"
+  case "$value" in
+    [A-Za-z_]*) ;;
+    *) fw_die "$name must be a SQL identifier" ;;
+  esac
+  case "$value" in
+    *[!A-Za-z0-9_]*) fw_die "$name must be a SQL identifier" ;;
+  esac
 }
 
 # Load FW_ENV if set, else $REPO_ROOT/.env when present.

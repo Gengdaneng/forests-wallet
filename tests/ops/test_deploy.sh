@@ -43,6 +43,14 @@ else
   pass "dry-run did not invoke ssh/rsync"
 fi
 grep -q "dry-run complete" "$TMP/dry.err" && pass "dry-run announced itself" || fail "dry-run log missing"
+grep -q "init-db-roles" "$TMP/dry.err" && pass "dry-run plans role bootstrap" || fail "dry-run missing init-db-roles"
+grep -q "fw migrate" "$TMP/dry.err" && pass "dry-run plans fw migrate" || fail "dry-run missing fw migrate"
+grep -q "app node" "$TMP/dry.err" && pass "dry-run plans app node healthz" || fail "dry-run missing app node health"
+if grep -q "caddy curl" "$TMP/dry.err"; then
+  fail "dry-run still mentions caddy curl"
+else
+  pass "dry-run does not use caddy curl"
+fi
 
 if FW_ENV="$env_ok" "$OPS_ROOT/deploy.sh" --apply >"$TMP/apply.out" 2>"$TMP/apply.err"; then
   fail "unattended --apply without --yes should fail"

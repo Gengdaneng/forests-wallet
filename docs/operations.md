@@ -114,8 +114,19 @@ chmod 600 /srv/forests-wallet/.env
 chown deploy:deploy /srv/forests-wallet/.env
 ```
 
-`POSTGRES_PASSWORD` in `.env` must match the password embedded in
+`.env` is **POSIX shell assignment** syntax (`KEY=value`, no spaces around
+`=`). Scripts source it. Generate the three database passwords with
+`./ops/gen-secrets.sh` so they stay URL/shell-safe (`A-Za-z0-9._~-` only).
+A password containing `@ : / $` will break both `.env` sourcing and
 `DATABASE_URL`.
+
+Three Postgres roles (created by `ops/init-db-roles.sh` before migrate):
+
+| Role | Env | Use |
+|---|---|---|
+| admin (`forests_admin`) | `POSTGRES_ADMIN_*` | image bootstrap + role create + `pg_dump` |
+| migrator (`forests_wallet_migrator`) | `MIGRATE_DATABASE_URL` | one-shot `fw migrate` only |
+| runtime (`forests_wallet_runtime`) | `DATABASE_URL` | long-running app; cannot DDL or `UPDATE`/`DELETE` the ledger |
 
 ---
 
@@ -125,13 +136,15 @@ The app image (Dockerfile is owned by the application change) must:
 
 - listen on `0.0.0.0:3000`
 - serve `GET /healthz` → `200 {"ok": true}` or `503`, no versions/counts
-- read `DATABASE_URL`
-- put `fw` on `PATH` with:
-  - `fw migrate` — numbered SQL migrations, idempotent
+- read runtime `DATABASE_URL` only (role `forests_wallet_runtime`)
+- put `fw` on `PATH`. Canonical invocations:
+  - `fw migrate` — numbered SQL migrations as the migrator (`MIGRATE_DATABASE_URL`)
   - `fw open-bootstrap` — `bootstrap_open_until = now() + 30 minutes`
   - `fw revoke-parent-devices` — revoke every parent device
 
-Ops scripts only invoke that CLI. Do not `psql` tokens or bootstrap flags.
+Compose runs those as `--entrypoint fw` plus the subcommand, or
+`docker compose exec -T app fw <subcommand>`. Ops scripts only invoke that
+CLI. Do not `psql` tokens or bootstrap flags.
 
 ---
 
@@ -155,8 +168,12 @@ What `--apply` does:
 1. Refuses a dirty tracked worktree and (if set) a HEAD that is not
    `DEPLOY_EXPECTED_REF`
 2. rsyncs **tracked** files only (never `.env`)
-3. On the VPS: `docker compose build`, wait for Postgres, `fw migrate`,
-   `docker compose up -d`, wait for `http://app:3000/healthz` from Caddy
+3. On the VPS: `docker compose build`, wait for Postgres,
+   `ops/init-db-roles.sh` (idempotent admin/migrator/runtime),
+   one-shot `fw migrate` with `MIGRATE_DATABASE_URL` only,
+   `docker compose up -d`, wait for `/healthz` via **app Node**, then
+   host `curl https://$DOMAIN/healthz` (Caddy/TLS). Caddy's image is not
+   assumed to ship `curl`.
 4. Writes `.deployed-revision` and keeps `.previous-revision`
 
 Rollback:
@@ -288,7 +305,8 @@ the truth.
 ```sh
 docker compose --env-file .env ps
 docker compose --env-file .env logs --tail=100 app
-docker compose --env-file .env exec -T caddy curl -fsS http://app:3000/healthz
+docker compose --env-file .env exec -T app node -e "fetch('http://127.0.0.1:3000/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+curl -fsS --resolve "$DOMAIN:443:127.0.0.1" "https://$DOMAIN/healthz"
 docker compose --env-file .env restart app
 ```
 

@@ -35,6 +35,12 @@ if "$OPS_ROOT/host-setup.sh" >"$TMP/hs.out" 2>"$TMP/hs.err"; then
 else
   fail "host-setup dry-run failed"
 fi
+if "$OPS_ROOT/init-db-roles.sh" >/dev/null 2>"$TMP/roles-missing.err"; then
+  fail "init-db-roles without env should fail"
+else
+  pass "init-db-roles refuses missing env"
+fi
+
 if "$OPS_ROOT/host-setup.sh" --apply >/dev/null 2>"$TMP/hs-apply.err"; then
   fail "host-setup --apply on this Mac should fail"
 else

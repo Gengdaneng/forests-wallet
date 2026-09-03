@@ -25,8 +25,8 @@ git -C "$git_src" -c user.email=t@t -c user.name=t commit --allow-empty -m init 
 
 envfile="$TMP/backup.env"
 make_secret_env "$envfile" <<EOF
-POSTGRES_USER=forests
-POSTGRES_PASSWORD=supersecret-db-password
+POSTGRES_ADMIN_USER=forests_admin
+POSTGRES_ADMIN_PASSWORD=supersecret-db-password
 POSTGRES_DB=forests_wallet
 AGE_RECIPIENT=age1examplepublicrecipientxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 BACKUP_LOCAL_DIR=$local_dir
@@ -123,8 +123,8 @@ unset FW_AGE_FAIL
 export FW_PG_DUMP="printf '%s\\n' '-- PostgreSQL database dump' '-- unique-$$'"
 bad="$TMP/backup-bad.env"
 make_secret_env "$bad" <<EOF
-POSTGRES_USER=forests
-POSTGRES_PASSWORD=supersecret-db-password
+POSTGRES_ADMIN_USER=forests_admin
+POSTGRES_ADMIN_PASSWORD=supersecret-db-password
 POSTGRES_DB=forests_wallet
 AGE_RECIPIENT=age1examplepublicrecipientxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 BACKUP_LOCAL_DIR=$local_dir
@@ -168,8 +168,8 @@ fi
 # Broad retention root refused.
 broad="$TMP/broad.env"
 make_secret_env "$broad" <<EOF
-POSTGRES_USER=forests
-POSTGRES_PASSWORD=x
+POSTGRES_ADMIN_USER=forests_admin
+POSTGRES_ADMIN_PASSWORD=xxxxxxxxxxxxxxxx
 POSTGRES_DB=forests_wallet
 AGE_RECIPIENT=age1examplepublicrecipientxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 BACKUP_LOCAL_DIR=/tmp

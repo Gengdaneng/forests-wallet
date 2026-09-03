@@ -25,8 +25,8 @@ if [ "$args_rc" = "2" ]; then
 fi
 
 fw_load_env
-fw_require_var POSTGRES_USER
-fw_require_var POSTGRES_DB
+fw_require_sql_ident POSTGRES_ADMIN_USER
+fw_require_sql_ident POSTGRES_DB
 fw_require_var AGE_RECIPIENT
 fw_require_var BACKUP_LOCAL_DIR
 fw_require_var BACKUP_GIT_DIR
@@ -83,7 +83,7 @@ LOCAL_OUT="$BACKUP_LOCAL_DIR/$BACKUP_NAME"
 fw_log "mode=$(fw_is_apply && echo apply || echo dry-run) backup=$BACKUP_NAME"
 
 if ! fw_is_apply; then
-  fw_log "plan: pg_dump plain SQL as $POSTGRES_USER/$POSTGRES_DB"
+  fw_log "plan: pg_dump plain SQL as $POSTGRES_ADMIN_USER/$POSTGRES_DB"
   fw_log "plan: encrypt to local $BACKUP_LOCAL_DIR (age public recipient only)"
   fw_log "plan: copy ciphertext into $BACKUP_GIT_DIR and git add/commit/push $BACKUP_GIT_REMOTE"
   fw_log "plan: prune forests-wallet-*.age older than $BACKUP_RETENTION_DAYS days inside $BACKUP_LOCAL_DIR"
@@ -123,7 +123,7 @@ run_pg_dump() {
   else
     fw_require_cmd docker
     fw_compose exec -T postgres \
-      pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+      pg_dump -U "$POSTGRES_ADMIN_USER" -d "$POSTGRES_DB" \
         --no-owner --no-privileges --format=plain
   fi
 }

@@ -4,7 +4,9 @@
 # `docker compose config` into git or chat.
 #
 # App image contract (application task owns the Dockerfile):
-#   listen 0.0.0.0:3000, GET /healthz, DATABASE_URL, `fw` CLI on PATH.
+#   listen 0.0.0.0:3000, GET /healthz, runtime DATABASE_URL only,
+#   `fw` on PATH (fw migrate | fw open-bootstrap | fw revoke-parent-devices).
+# Admin/migrator secrets must not appear on the long-running app service.
 #
 # Postgres 18 official image stores files under /var/lib/postgresql
 # (VOLUME moved off /var/lib/postgresql/data). Bind-mount that parent
@@ -18,8 +20,8 @@ services:
     restart: unless-stopped
     stop_grace_period: 1m
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER:?POSTGRES_ADMIN_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?POSTGRES_ADMIN_PASSWORD is required}
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
     volumes:
       - type: bind
@@ -48,6 +50,8 @@ services:
     restart: unless-stopped
     init: true
     environment:
+      # Runtime role only. MIGRATE_DATABASE_URL is injected solely on the
+      # one-shot `fw migrate` command in ops/deploy.sh, never here.
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
     depends_on:
       postgres:
@@ -112,12 +116,8 @@ services:
     depends_on:
       app:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "--max-time", "5", "http://127.0.0.1:80/"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
+    # No image-native HTTP client is guaranteed in caddy:2. Internal
+    # health uses Node in `app`; public HTTPS uses host curl.
     logging:
       driver: json-file
       options:
