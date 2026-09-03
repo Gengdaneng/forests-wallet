@@ -33,7 +33,9 @@ plan() {
   fw_log "plan: apt-get update && install ca-certificates curl git gzip rsync age docker.io docker-compose-v2 unattended-upgrades"
   fw_log "plan: systemctl enable --now docker"
   fw_log "plan: mkdir $SRV_DIR $DATA_ROOT/{postgres,caddy,caddy-config,backups,backup-git}"
-  fw_log "plan: chown $DEPLOY_USER:$DEPLOY_USER those trees; chmod 700 data roots"
+  fw_log "plan: chown $DEPLOY_USER:$DEPLOY_USER those trees"
+  fw_log "plan: chmod 755 $DATA_ROOT/postgres (Postgres 18 uid 999 must traverse the bind-mount root)"
+  fw_log "plan: chmod 700 $DATA_ROOT $DATA_ROOT/backups $DATA_ROOT/backup-git"
   fw_log "plan: enable unattended-upgrades (security updates only)"
 }
 
@@ -81,7 +83,10 @@ mkdir -p "$SRV_DIR" \
   "$DATA_ROOT/backup-git"
 
 chown -R "$DEPLOY_USER:$DEPLOY_USER" "$SRV_DIR" "$DATA_ROOT"
-chmod 700 "$DATA_ROOT" "$DATA_ROOT/postgres" "$DATA_ROOT/backups" "$DATA_ROOT/backup-git"
+# Postgres 18 runs as uid 999 and must traverse the bind-mount root to
+# reach PGDATA (.../18/docker). chmod 700 here blocks that on Linux.
+chmod 755 "$DATA_ROOT/postgres"
+chmod 700 "$DATA_ROOT" "$DATA_ROOT/backups" "$DATA_ROOT/backup-git"
 chmod 755 "$SRV_DIR"
 
 if [ -d /etc/apt/apt.conf.d ]; then

@@ -100,10 +100,13 @@ sudo bash /srv/forests-wallet/ops/host-setup.sh --apply --yes
 | Path | Why |
 |---|---|
 | `/srv/forests-wallet` | compose project (rsync target) |
-| `/var/lib/forests-wallet/postgres` | PG 18 bind mount (`/var/lib/postgresql` in the container) |
+| `/var/lib/forests-wallet/postgres` | PG 18 bind mount (`/var/lib/postgresql`); **mode 755** so uid 999 can traverse |
 | `/var/lib/forests-wallet/caddy` | ACME certificates |
-| `/var/lib/forests-wallet/backups` | 30-day local ciphertext |
-| `/var/lib/forests-wallet/backup-git` | separate git repo of ciphertext |
+| `/var/lib/forests-wallet/backups` | 30-day local ciphertext (**mode 700**) |
+| `/var/lib/forests-wallet/backup-git` | separate git repo of ciphertext (**mode 700**) |
+
+Do not `chmod 700` the Postgres bind-mount root. Postgres 18 runs as uid 999
+and must enter that directory to reach `…/18/docker`. Backup dirs stay 700.
 
 It does **not** enable UFW and does **not** change sshd.
 
@@ -179,7 +182,7 @@ What `--apply` does:
 Rollback:
 
 ```sh
-ssh deploy@<host> 'cd /srv/forests-wallet && ./ops/rollback.sh --apply'
+ssh deploy@<host> 'cd /srv/forests-wallet && ./ops/rollback.sh --apply --yes'
 # or:
 # APP_IMAGE_TAG=$(cat .previous-revision) docker compose --env-file .env up -d app
 ```
@@ -197,7 +200,7 @@ the same role revokes the previous.
 First parent iPhone:
 
 ```sh
-ssh deploy@<host> 'cd /srv/forests-wallet && ./ops/open-bootstrap.sh --apply'
+ssh deploy@<host> 'cd /srv/forests-wallet && ./ops/open-bootstrap.sh --apply --yes'
 ```
 
 Then `POST /v1/bootstrap` from the phone. The window must close on success
@@ -209,8 +212,8 @@ device. No SSH.
 Lost iPhone:
 
 ```sh
-ssh deploy@<host> 'cd /srv/forests-wallet && ./ops/revoke-parent-devices.sh --apply'
-ssh deploy@<host> 'cd /srv/forests-wallet && ./ops/open-bootstrap.sh --apply'
+ssh deploy@<host> 'cd /srv/forests-wallet && ./ops/revoke-parent-devices.sh --apply --yes'
+ssh deploy@<host> 'cd /srv/forests-wallet && ./ops/open-bootstrap.sh --apply --yes'
 ```
 
 Register the replacement phone within 30 minutes. Hashed tokens in Postgres
@@ -289,7 +292,7 @@ devices keep working.
      age private identity there (decrypt on the Mac, scp the plain SQL over
      a pipe, wipe it)
    - `psql` into the new bind-mounted data dir
-4. `ops/deploy.sh --apply` (or rsync + compose up)
+4. `ops/deploy.sh --apply --yes` from a TTY-less SSH session (or `--apply` on a Mac TTY)
 5. Point DNS A/AAAA at the new addresses; wait for TTL
 6. Caddy obtains new certificates
 7. Confirm `GET https://$DOMAIN/healthz` and that parent/child tokens still
