@@ -163,6 +163,7 @@ function roleUrl(role: string, password: string, port: number, db: string): stri
 
 export async function startEnv(opts?: {
   testRoutes?: boolean;
+  extraEnv?: Record<string, string>;
 }): Promise<TestEnv> {
   resetThrottlesForTests();
   const { port } = await ensureContainer();
@@ -185,6 +186,7 @@ export async function startEnv(opts?: {
     TRUST_FORWARDED: "true",
     HOST: "127.0.0.1",
     PORT: "0",
+    ...opts?.extraEnv,
   });
   const pool = createPool(runtimeUrl);
   const migratorPool = createPool(migratorUrl);

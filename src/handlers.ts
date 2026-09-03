@@ -152,15 +152,16 @@ export async function handleCreatePairing(ctx: RequestCtx): Promise<{
           AND revoked_at IS NULL`,
     );
     const childId = ctx.device?.childId ?? (await singletonChildId(client));
+    const ttlMs = ctx.config.pairingTtlMs;
     await client.query(
       `INSERT INTO devices
          (child_id, role, status, label, pairing_code_hash, pairing_expires_at, pairing_attempts)
-       VALUES ($1, 'child', 'pending', $2, $3, now() + interval '10 minutes', 0)`,
-      [childId, deviceLabel, codeHash],
+       VALUES ($1, 'child', 'pending', $2, $3, now() + ($4::bigint * interval '1 millisecond'), 0)`,
+      [childId, deviceLabel, codeHash, ttlMs],
     );
     return {
       status: 201,
-      body: { code, expires_in_seconds: 600 },
+      body: { code, expires_in_seconds: Math.floor(ttlMs / 1000) },
     };
   });
 }
@@ -170,14 +171,18 @@ export async function handleClaimPairing(ctx: RequestCtx): Promise<{
   body: unknown;
 }> {
   if (
-    !claimThrottle.hit(`ip:${ctx.ip}`, {
-      max: ctx.config.claimIpMax,
-      windowMs: ctx.config.claimIpWindowMs,
-    }) ||
-    !claimThrottle.hit("global", {
-      max: ctx.config.claimGlobalMax,
-      windowMs: ctx.config.claimGlobalWindowMs,
-    })
+    !claimThrottle.allowIpAndGlobal(
+      `ip:${ctx.ip}`,
+      "global",
+      {
+        max: ctx.config.claimIpMax,
+        windowMs: ctx.config.claimIpWindowMs,
+      },
+      {
+        max: ctx.config.claimGlobalMax,
+        windowMs: ctx.config.claimGlobalWindowMs,
+      },
+    )
   ) {
     throw tooManyRequests();
   }

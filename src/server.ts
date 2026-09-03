@@ -3,6 +3,7 @@ import { createApp } from "./app.js";
 import { loadConfig } from "./config.js";
 import { createPool } from "./db.js";
 import { logError, logInfo } from "./log.js";
+import { closeServerThenPool } from "./shutdown.js";
 
 const config = loadConfig();
 const pool = createPool(config.databaseUrl);
@@ -29,24 +30,15 @@ async function shutdown(signal: string): Promise<void> {
   }
   shuttingDown = true;
   logInfo("shutdown", { signal });
-  const force = setTimeout(() => {
-    logError("shutdown timeout");
-    process.exit(1);
-  }, 10_000);
-  force.unref();
-  server.close((err) => {
-    if (err) {
-      logError("server close failed", { err: err.message });
-    }
-  });
   try {
-    await pool.end();
+    await closeServerThenPool(server, pool, 10_000);
+    process.exit(0);
   } catch (err) {
-    logError("pool end failed", {
+    logError("shutdown failed", {
       err: err instanceof Error ? err.message : "unknown",
     });
+    process.exit(1);
   }
-  process.exit(0);
 }
 
 process.on("SIGTERM", () => {

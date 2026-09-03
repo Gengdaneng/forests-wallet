@@ -61,7 +61,7 @@ export function loadConfig(env = process.env): AppConfig {
     testRoutes: envFlag(env, "FORESTS_WALLET_TEST_ROUTES", false),
     trustForwarded: envFlag(env, "TRUST_FORWARDED", true),
     bootstrapWindowMs: 30 * 60 * 1000,
-    pairingTtlMs: 10 * 60 * 1000,
+    pairingTtlMs: pairingTtlMs(env),
     pairingMaxAttempts: 5,
     claimIpMax: envInt(env, "CLAIM_THROTTLE_IP_MAX", 5),
     claimIpWindowMs: envInt(env, "CLAIM_THROTTLE_IP_WINDOW_MS", 10 * 60 * 1000),
@@ -70,6 +70,14 @@ export function loadConfig(env = process.env): AppConfig {
     bootstrapIpMax: envInt(env, "BOOTSTRAP_THROTTLE_IP_MAX", 5),
     bootstrapIpWindowMs: envInt(env, "BOOTSTRAP_THROTTLE_IP_WINDOW_MS", 60 * 60 * 1000),
   };
+}
+
+function pairingTtlMs(env: NodeJS.Dict<string>): number {
+  const ttl = envInt(env, "PAIRING_TTL_MS", 10 * 60 * 1000);
+  if (ttl > 30 * 60 * 1000) {
+    throw new Error("PAIRING_TTL_MS must be <= 1800000");
+  }
+  return ttl;
 }
 
 export function loadMigrateDatabaseUrl(env = process.env): string {

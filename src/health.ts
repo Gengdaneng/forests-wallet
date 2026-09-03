@@ -2,7 +2,49 @@ import {
   expectedMigrationHead,
   expectedMigrationVersions,
 } from "./migrate.js";
-import type { DbPool } from "./db.js";
+import type { DbClient, DbPool } from "./db.js";
+
+export async function connectWithTimeout<T extends { release: () => void }>(
+  pool: { connect: () => Promise<T> },
+  timeoutMs: number,
+): Promise<T> {
+  let settled = false;
+  const pending = pool.connect().then((client) => {
+    if (settled) {
+      client.release();
+    }
+    return client;
+  });
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await new Promise<T>((resolve, reject) => {
+      timer = setTimeout(() => {
+        settled = true;
+        reject(new Error("health connect timeout"));
+      }, timeoutMs);
+      timer.unref();
+      pending.then(
+        (client) => {
+          if (!settled) {
+            settled = true;
+            resolve(client);
+          }
+        },
+        (err: unknown) => {
+          if (!settled) {
+            settled = true;
+            reject(err);
+          }
+        },
+      );
+    });
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
+}
 
 export async function checkHealth(
   pool: DbPool,
@@ -10,20 +52,18 @@ export async function checkHealth(
 ): Promise<boolean> {
   const expected = expectedMigrationVersions();
   const head = expectedMigrationHead();
-  let client;
+  let client: DbClient | undefined;
   try {
-    client = await Promise.race([
-      pool.connect(),
-      sleepReject(timeoutMs, "health connect timeout"),
-    ]);
-    await client.query("BEGIN");
+    const acquired = await connectWithTimeout<DbClient>(pool, timeoutMs);
+    client = acquired;
+    await acquired.query("BEGIN");
     const timeout = Math.max(1, Math.floor(timeoutMs));
-    await client.query(`SET LOCAL statement_timeout = '${timeout}ms'`);
-    await client.query("SELECT 1");
-    const applied = await client.query<{ version: string }>(
+    await acquired.query(`SET LOCAL statement_timeout = '${timeout}ms'`);
+    await acquired.query("SELECT 1");
+    const applied = await acquired.query<{ version: string }>(
       "SELECT version FROM schema_migrations ORDER BY version",
     );
-    await client.query("COMMIT");
+    await acquired.query("COMMIT");
     const versions = applied.rows.map((row) => row.version);
     if (versions.length !== expected.length) {
       return false;
@@ -46,10 +86,4 @@ export async function checkHealth(
   } finally {
     client?.release();
   }
-}
-
-function sleepReject(ms: number, message: string): Promise<never> {
-  return new Promise((_, reject) => {
-    setTimeout(() => reject(new Error(message)), ms).unref();
-  });
 }

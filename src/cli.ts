@@ -7,7 +7,7 @@ import { openBootstrap, revokeAllParentDevices } from "./operators.js";
 
 function usage(): never {
   process.stderr.write(
-    "usage: forests-wallet <migrate|open-bootstrap|revoke-all-parent-devices>\n",
+    "usage: fw <migrate|open-bootstrap|revoke-parent-devices>\n",
   );
   process.exit(2);
 }
@@ -45,7 +45,10 @@ async function main(): Promise<void> {
     }
     return;
   }
-  if (command === "revoke-all-parent-devices") {
+  if (
+    command === "revoke-parent-devices" ||
+    command === "revoke-all-parent-devices"
+  ) {
     const config = loadConfig();
     const pool = createPool(config.databaseUrl);
     try {

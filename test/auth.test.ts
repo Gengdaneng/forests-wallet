@@ -105,7 +105,7 @@ test("bootstrap is closed by default and refuses while an active parent exists",
   });
   assert.equal(conflicted.status, 409);
 
-  const revoked = await cli("revoke-all-parent-devices");
+  const revoked = await cli("revoke-parent-devices");
   assert.equal(revoked.code, 0);
   const stale = await api(env.baseUrl, {
     method: "GET",
@@ -137,7 +137,7 @@ test("pairing expiry, five-strike, throttle, replacement, parent-only, revoke, c
       WHERE role = 'parent' AND revoked_at IS NULL AND token_hash IS NOT NULL`,
   );
   if ((existing.rowCount ?? 0) > 0) {
-    await cli("revoke-all-parent-devices");
+    await cli("revoke-parent-devices");
   }
   const parentSession = await registerParent("pairing-parent");
 

@@ -7,7 +7,7 @@
     "node": ">=24"
   },
   "bin": {
-    "forests-wallet": "./dist/cli.js"
+    "fw": "./dist/cli.js"
   },
   "scripts": {
     "build": "tsc",

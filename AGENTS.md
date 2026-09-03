@@ -5,9 +5,9 @@ Forrest's Wallet backend is a small TypeScript HTTP service (Node built-in `http
 ## Commands
 
 - `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`
-- `node dist/cli.js migrate` (schema owner URL: `MIGRATE_DATABASE_URL` or `DATABASE_URL`)
-- `node dist/cli.js open-bootstrap` / `revoke-all-parent-devices` (runtime `DATABASE_URL`)
-- App contract: `0.0.0.0:3000`, `GET /healthz`, `DATABASE_URL`, root `Dockerfile` CMD
+- `fw migrate` (`MIGRATE_DATABASE_URL` only; schema owner)
+- `fw open-bootstrap` / `fw revoke-parent-devices` (runtime `DATABASE_URL`)
+- App contract: `0.0.0.0:3000`, `GET /healthz`, runtime `DATABASE_URL`, root `Dockerfile` CMD, `fw` on PATH
 
 See `docs/development.md` for roles, migrations, and local Docker tests.
 
