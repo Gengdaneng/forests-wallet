@@ -1,0 +1,33 @@
+<!-- @dsCard group="Components" viewport="700x400" name="Ledger" subtitle="Tri-state week board, rule rows, change notes, Sunday settlement" -->
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;padding:18px 20px;background:var(--surface-app);font-family:var(--font-text)}.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}.col{display:flex;flex-direction:column;gap:14px}.lbl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);font-family:var(--font-rounded)}</style></head><body><div id="root"></div>
+<script type="text/babel">
+const { WeekBoard, RuleRow, ChangeNote, SettlementSummary, Card } = window.ForrestSWalletDesignSystem_2e3ae3;
+
+const items=[
+ {name:'跳绳',goal:5,rewardCents:500,days:['done','done','done','unlogged','future','future','future']},
+ {name:'喝牛奶',goal:7,rewardCents:500,days:['done','done','unlogged','future','future','future','future']},
+];
+function Demo(){return(<div className="col">
+  <Card><WeekBoard size="parent" items={items} weekLabel="本周 · 10月1日–10月7日" onToggle={()=>{}}/></Card>
+  <div className="row" style={{alignItems:'stretch'}}>
+    <Card style={{flex:1}}>
+      <RuleRow size="parent" name="跳绳" detail="每周 5 次" rewardCents={500} met/>
+      <RuleRow size="parent" name="喝牛奶" detail="每周 7 次" rewardCents={500} met={false}/>
+      <RuleRow size="parent" name="帮忙搬水" detail="一事一议" rewardCents={200} kind="adhoc"/>
+    </Card>
+    <Card style={{flex:1}}><SettlementSummary lines={[
+      {name:'跳绳',goal:5,doneCount:5,rewardCents:500,met:true},
+      {name:'喝牛奶',goal:7,doneCount:6,rewardCents:500,met:false},
+      {name:'上学全勤',goal:5,doneCount:5,rewardCents:500,met:true}]} bonus={{rewardCents:300,met:false}}/></Card>
+  </div>
+  <ChangeNote size="parent" text="从 10 月 1 日起，跳绳从 5 元变成 3 元" date="10月1日 · 爸爸改的"/>
+</div>)}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script></body></html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Forrest 的 iPad 首页" description="Read-only child screen: spruce sidebar, 96px balance, savings goal, recent ledger lines." -->
+<helmet><link rel="preconnect" href="https://fonts.gstatic.com"><script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.js"></script><script src="./ds-base.js"></script><style>body{margin:0;background:#FBF7ED}</style></helmet>
+<div style="display:flex;min-height:100vh;font-family:var(--font-text)">
+<x-import component-from-global-scope="ForrestSWalletDesignSystem_2e3ae3.Sidebar" items="{{ nav }}" active="{{ tab }}" onSelect="{{ setTab }}" hint-size="280px,100vh"></x-import>
+<main style="flex:1;overflow-y:auto;padding:32px">
+<div style="max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;align-items:center;gap:12px">
+<h1 style="flex:1;font-family:var(--font-rounded);font-weight:800;font-size:34px;color:#123329;margin:0">我的钱</h1>
+<x-import component-from-global-scope="ForrestSWalletDesignSystem_2e3ae3.StatusBanner" kind="{{ trust }}" hint-size="180px,44px"></x-import>
+</div>
+<x-import component-from-global-scope="ForrestSWalletDesignSystem_2e3ae3.BalanceHero" cents="{{ balanceCents }}" note="爸爸记下的每一笔都在下面，你可以自己数一遍。" hint-size="100%,240px"></x-import>
+<x-import component-from-global-scope="ForrestSWalletDesignSystem_2e3ae3.Card" variant="child" tone="honey" hint-size="100%,140px">
+<x-import component-from-global-scope="ForrestSWalletDesignSystem_2e3ae3.GoalProgress" title="{{ goalTitle }}" savedCents="{{ balanceCents }}" targetCents="{{ goalTargetCents }}" hint-size="100%,110px"></x-import>
+</x-import>
+<x-import component-from-global-scope="ForrestSWalletDesignSystem_2e3ae3.Card" variant="child" hint-size="100%,420px">
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+<h2 style="flex:1;font-family:var(--font-rounded);font-weight:800;font-size:26px;color:#123329;margin:0">钱为什么变了</h2>
+<x-import component-from-global-scope="ForrestSWalletDesignSystem_2e3ae3.Badge" tone="neutral" icon="eye" size="child" hint-size="110px,40px">只能看</x-import>
+</div>
+<sc-for list="{{ tx }}" as="t" hint-placeholder-count="5">
+<x-import component-from-global-scope="ForrestSWalletDesignSystem_2e3ae3.TransactionRow" reason="{{ t.reason }}" cents="{{ t.cents }}" direction="{{ t.direction }}" date="{{ t.date }}" category="{{ t.category }}" balanceAfter="{{ t.balanceAfter }}" hint-size="100%,72px"></x-import>
+</sc-for>
+</x-import>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1194,&quot;height&quot;:834},&quot;balanceYuan&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:87,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:-200,&quot;max&quot;:2000,&quot;unit&quot;:&quot;元&quot;,&quot;section&quot;:&quot;账本&quot;},&quot;goalTitle&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;乐高赛车&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;目标&quot;},&quot;goalTargetYuan&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:400,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:10,&quot;max&quot;:2000,&quot;unit&quot;:&quot;元&quot;,&quot;section&quot;:&quot;目标&quot;},&quot;offline&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;信任状态&quot;}}">
+class Component extends DCLogic {
+  state = { tab: 'home' };
+  renderVals() {
+    return {
+      nav: [
+        { id: 'home', label: '我的钱', icon: 'wallet' },
+        { id: 'board', label: '本周看板', icon: 'calendar-check' },
+        { id: 'rules', label: '规则', icon: 'scroll-text' },
+        { id: 'all', label: '全部流水', icon: 'list' },
+        { id: 'wish', label: '已实现的心愿', icon: 'sparkles' },
+      ],
+      tab: this.state.tab,
+      setTab: (id) => this.setState({ tab: id }),
+      trust: this.props.offline ? 'offline' : 'online',
+      balanceCents: (this.props.balanceYuan ?? 87) * 100,
+      goalTitle: this.props.goalTitle ?? '乐高赛车',
+      goalTargetCents: (this.props.goalTargetYuan ?? 400) * 100,
+      tx: [
+        { reason: '本周基础零花钱', cents: 1000, direction: 'in', date: '10月5日', balanceAfter: 8700 },
+        { reason: '帮忙搬水', cents: 200, direction: 'in', date: '10月4日', balanceAfter: 7700 },
+        { reason: '买冰淇淋', cents: 1500, direction: 'out', date: '10月3日', category: 'food', balanceAfter: 7500 },
+        { reason: '更正：记错了', cents: 300, direction: 'fix', date: '10月2日', balanceAfter: 9000 },
+        { reason: '画笔', cents: 900, direction: 'out', date: '9月30日', category: 'book', balanceAfter: 8700 },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

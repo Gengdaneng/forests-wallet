@@ -1,0 +1,17 @@
+/* Webfonts.
+   SUBSTITUTION NOTE: the PRD specifies SF Pro Rounded (headings) and SF Pro Text / PingFang SC (body).
+   Neither is redistributable, so this system ships Nunito (nearest rounded match, matched numerals)
+   and Noto Sans SC (nearest Han match) from Google Fonts, and prefers the real Apple faces
+   via ui-rounded / -apple-system whenever the platform provides them. */
+@import url("https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;0,900&family=Noto+Sans+SC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap");
+
+:root{
+  /* Headings / numbers — rounded, sturdy.
+     ui-rounded resolves to SF Pro Rounded on Apple platforms without naming the
+     (undistributable) file, so no @font-face is needed for it. */
+  --font-rounded: ui-rounded, "Nunito", "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
+  /* Body / UI text — -apple-system IS SF Pro Text on iOS/macOS. */
+  --font-text: -apple-system, "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
+  /* Ledger figures where column alignment matters */
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}

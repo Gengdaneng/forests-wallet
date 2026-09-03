@@ -1,0 +1,45 @@
+<!-- @dsCard group="Forrest · iPad" viewport="1194x834" name="Forrest 的 iPad（只读）" subtitle="Balance, goal, ledger, tri-state board, rules — strictly read-only" -->
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><title>Forrest's Wallet · iPad</title>
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="../data.js"></script>
+<style>html,body{margin:0;height:100%}body{background:var(--surface-app);overflow:hidden}#root{height:100vh}</style></head>
+<body><div id="root"></div>
+<script type="text/babel" src="child-home.jsx"></script>
+<script type="text/babel" src="child-detail.jsx"></script>
+<script type="text/babel">
+const { Sidebar, StatusBanner, Button } = window.ForrestSWalletDesignSystem_2e3ae3;
+const NAV = [
+  { id: 'home',  label: '我的钱',      icon: 'wallet' },
+  { id: 'board', label: '本周看板',    icon: 'calendar-check' },
+  { id: 'rules', label: '规则',        icon: 'scroll-text' },
+  { id: 'all',   label: '全部流水',    icon: 'list' },
+  { id: 'wish',  label: '已实现的心愿', icon: 'sparkles' },
+];
+function App(){
+  const [tab,setTab]=React.useState('home');
+  const [offline,setOffline]=React.useState(false);
+  const [celebrate,setCelebrate]=React.useState(false);
+  const data=window.FWData;
+  const Screen={home:()=> <ChildHome data={data} offline={offline} celebrate={celebrate} onDismiss={()=>setCelebrate(false)} onOpenAll={()=>setTab('all')}/>,
+    board:()=> <ChildBoard data={data}/>, rules:()=> <ChildRules data={data}/>,
+    all:()=> <ChildLedger data={data}/>, wish:()=> <ChildWishes data={data}/>}[tab];
+  return (<div style={{display:'flex',height:'100vh'}}>
+    <Sidebar items={NAV} active={tab} onSelect={setTab} footer={
+      <div style={{display:'grid',gap:10}}>
+        <StatusBanner kind={offline?'offline':'online'} style={{background:'rgba(251,247,237,.12)',color:'var(--paper-100)'}}/>
+        {/* Demo-only switches — the real child app has no controls whatsoever */}
+        <Button size="small" tone="quiet" onClick={()=>setOffline(o=>!o)}>切换离线（演示）</Button>
+        <Button size="small" tone="quiet" onClick={()=>{setTab('home');setCelebrate(true)}}>零花钱到账（演示）</Button>
+      </div>}/>
+    <main style={{flex:1,overflowY:'auto',padding:'var(--space-8) var(--gutter-pad)'}}>
+      <div style={{maxWidth:'var(--max-child-column)',margin:'0 auto'}}><Screen/></div>
+    </main>
+  </div>);
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

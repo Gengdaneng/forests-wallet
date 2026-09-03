@@ -1,0 +1,105 @@
+<!-- @dsCard group="Brand" viewport="1440x2260" name="App icon · A1 定稿" subtitle="主资源、iOS 全尺寸、落币动画、使用规则" -->
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>App icon · A1 定稿</title><link rel="stylesheet" href="../styles.css">
+<style>
+body{margin:0;background:var(--paper-200);font-family:var(--font-text);color:var(--text-body);padding:56px 48px 64px}
+h1{font-family:var(--font-rounded);font-weight:900;font-size:34px;letter-spacing:-.02em;margin:0 0 10px;color:var(--text-strong)}
+.lede{max-width:820px;margin:0 0 40px;font-size:15px;line-height:1.6;color:var(--text-muted);text-wrap:pretty}
+h2{font-family:var(--font-rounded);font-weight:800;font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin:0 0 18px}
+.row{display:grid;grid-template-columns:340px 1fr;gap:24px;margin:0 0 24px}
+.card{background:var(--surface-card);border:1px solid var(--border-card);border-radius:22px;padding:28px}
+.master{display:flex;flex-direction:column;gap:18px;align-items:flex-start}
+.sq{overflow:hidden;border-radius:22.37%;box-shadow:0 8px 24px rgba(14,42,36,.16);display:block}
+.sq img{display:block;width:100%;height:100%}
+.meta{font-family:var(--font-mono);font-size:11px;line-height:1.9;color:var(--text-muted)}
+.meta b{color:var(--text-strong)}
+.ladder{display:flex;flex-wrap:wrap;align-items:flex-end;gap:22px}
+.u{display:flex;flex-direction:column;align-items:center;gap:8px}
+.u span{font-family:var(--font-mono);font-size:9.5px;color:var(--text-faint);white-space:nowrap}
+.wall{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:4px}
+.w{border-radius:16px;padding:26px;display:grid;place-items:center;gap:12px}
+.w p{margin:0;font-family:var(--font-mono);font-size:10px;letter-spacing:.06em}
+.anim{display:flex;align-items:center;gap:36px}
+.pigsvg{flex:0 0 200px;width:200px;height:200px;border-radius:22.37%;box-shadow:0 8px 24px rgba(14,42,36,.16)}
+@keyframes coindrop{0%,8%{transform:translateY(-104px);opacity:0}18%{opacity:1}46%{transform:translateY(10px)}58%{transform:translateY(-9px)}70%,100%{transform:translateY(0)}}
+@keyframes pigsquash{0%,42%{transform:scale(1,1)}50%{transform:scale(1.035,.965)}62%{transform:scale(.99,1.01)}74%,100%{transform:scale(1,1)}}
+.coin{animation:coindrop 3.4s cubic-bezier(.4,0,.3,1) infinite}
+.body{animation:pigsquash 3.4s ease-out infinite;transform-origin:512px 846px}
+.rules{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+ul{margin:0;padding-left:20px}li{font-size:13.5px;line-height:1.75;color:var(--text-muted);margin-bottom:6px;text-wrap:pretty}
+li b{color:var(--text-strong);font-family:var(--font-rounded)}
+.no li b{color:var(--clay-600)}
+.files{font-family:var(--font-mono);font-size:12px;line-height:2;color:var(--text-muted)}
+.files b{color:var(--spruce-700)}
+a{color:var(--spruce-600)}a:hover{color:var(--spruce-800)}
+</style></head><body>
+
+<h1>应用图标 · 定稿</h1>
+<p class="lede">正面小猪存钱罐，一枚硬币坐在头顶的投币口上。硬币下缘被头挡住，所以整个图标是一个连着的形状——缩到 29px 也不会散成两块。颜色只用了系统里已有的四个：云杉墨绿底、零花钱暖黄的猪、暖黄深色的投币口和鼻子、手账纸白的硬币。¥ 字已经转成路径，不依赖任何字体。</p>
+
+<div class="row">
+<div class="card master"><h2>主资源 1024</h2>
+<span class="sq" style="width:236px;height:236px"><img src="../assets/app-icon.svg" alt="app icon"></span>
+<div class="meta"><b>assets/app-icon.svg</b><br>1024 × 1024 · 满幅出血<br>圆角由 iOS 自动遮罩<br>安全区内边距 ≈ 88px</div>
+</div>
+<div class="card"><h2>iOS 全尺寸</h2>
+<div class="ladder">
+<div class="u"><span class="sq" style="width:180px;height:180px"><img src="../assets/ios/AppIcon-180.png" alt=""></span><span>180 · 60pt@3x</span></div>
+<div class="u"><span class="sq" style="width:167px;height:167px"><img src="../assets/ios/AppIcon-167.png" alt=""></span><span>167 · iPad Pro</span></div>
+<div class="u"><span class="sq" style="width:152px;height:152px"><img src="../assets/ios/AppIcon-152.png" alt=""></span><span>152 · iPad</span></div>
+<div class="u"><span class="sq" style="width:120px;height:120px"><img src="../assets/ios/AppIcon-120.png" alt=""></span><span>120 · 60pt@2x</span></div>
+<div class="u"><span class="sq" style="width:87px;height:87px"><img src="../assets/ios/AppIcon-87.png" alt=""></span><span>87 · 29pt@3x</span></div>
+<div class="u"><span class="sq" style="width:80px;height:80px"><img src="../assets/ios/AppIcon-80.png" alt=""></span><span>80 · 40pt@2x</span></div>
+<div class="u"><span class="sq" style="width:60px;height:60px"><img src="../assets/ios/AppIcon-60.png" alt=""></span><span>60</span></div>
+<div class="u"><span class="sq" style="width:58px;height:58px"><img src="../assets/ios/AppIcon-58.png" alt=""></span><span>58</span></div>
+<div class="u"><span class="sq" style="width:40px;height:40px"><img src="../assets/ios/AppIcon-40.png" alt=""></span><span>40</span></div>
+<div class="u"><span class="sq" style="width:29px;height:29px"><img src="../assets/ios/AppIcon-29.png" alt=""></span><span>29</span></div>
+<div class="u"><span class="sq" style="width:20px;height:20px"><img src="../assets/ios/AppIcon-20.png" alt=""></span><span>20</span></div>
+</div></div>
+</div>
+
+<div class="row" style="grid-template-columns:1fr">
+<div class="card"><h2>落币动画</h2>
+<div class="anim">
+<svg class="pigsvg" viewBox="0 0 1024 1024"><rect width="1024" height="1024" fill="#173D35"/><g class="coin"><circle cx="512" cy="272" r="94" fill="#FCF1D8" stroke="#D9A93C" stroke-width="18"/><g fill="none" stroke="#A9741A" stroke-width="15" stroke-linecap="round"><path d="M478 226 L512 268"/><path d="M546 226 L512 268"/><path d="M512 268 V320"/><path d="M480 284 H544"/><path d="M480 302 H544"/></g></g><g class="body"><g fill="#F3C968" stroke="#F3C968" stroke-width="40" stroke-linejoin="round"><path d="M300 424 L268 292 L412 360 Z"/><path d="M724 424 L756 292 L612 360 Z"/></g><circle cx="512" cy="596" r="250" fill="#F3C968"/><rect x="440" y="332" width="144" height="30" rx="15" fill="#A9741A"/><circle cx="418" cy="552" r="27" fill="#173D35"/><circle cx="606" cy="552" r="27" fill="#173D35"/><ellipse cx="512" cy="692" rx="118" ry="92" fill="#D9A93C"/><ellipse cx="479" cy="692" rx="18" ry="26" fill="#173D35"/><ellipse cx="545" cy="692" rx="18" ry="26" fill="#173D35"/></g></svg>
+<div><ul><li><b>用在哪</b>：森森完成任务、爸爸发钱确认的那一刻——不是 App 启动动画，启动动画会天天看，会烦。</li><li><b>时长</b> 460ms 落下 + 120ms 弹回，猪身在硬币落到口里时轻微压扁 3.5%。</li><li>硬币从图标外落进来，落点就是静态图标的位置——静态图标是这个动画的最后一帧。</li><li>遵循「减弱动态效果」系统设置时，只做硬币的淡入，不做位移。</li></ul></div>
+</div></div>
+</div>
+
+<div class="row" style="grid-template-columns:1fr">
+<div class="card"><h2>放在壁纸上</h2>
+<div class="wall">
+<div class="w" style="background:var(--paper-100)"><span class="sq" style="width:96px;height:96px"><img src="../assets/ios/AppIcon-180.png" alt=""></span><p style="color:var(--text-muted)">浅色壁纸</p></div>
+<div class="w" style="background:var(--spruce-900)"><span class="sq" style="width:96px;height:96px"><img src="../assets/ios/AppIcon-180.png" alt=""></span><p style="color:var(--text-on-ink-muted)">深色壁纸 · 同色系</p></div>
+<div class="w" style="background:var(--honey-500)"><span class="sq" style="width:96px;height:96px"><img src="../assets/ios/AppIcon-180.png" alt=""></span><p style="color:var(--text-on-honey)">暖色壁纸 · 最难</p></div>
+<div class="w" style="background:var(--slate-600)"><span class="sq" style="width:96px;height:96px"><img src="../assets/ios/AppIcon-180.png" alt=""></span><p style="color:#fff">冷色照片壁纸</p></div>
+</div>
+<p style="margin:16px 0 0;font-size:13px;line-height:1.6;color:var(--text-muted)">深色底最稳。暖色壁纸上小猪和背景撞色、只剩深绿的轮廓可读——这是它最弱的场合，但轮廓仍然成立，不需要加白边。</p>
+</div>
+</div>
+
+<div class="row" style="grid-template-columns:1fr 1fr 1fr">
+<div class="card"><h2>可以</h2><ul><li><b>整块用</b>。图标是一个不可拆的单元。</li><li><b>去背版</b> <code>app-icon-mark.svg</code> 用在启动页、空钱包状态、成就徽章上。</li><li><b>放大用</b>。矢量，海报尺寸也没问题。</li></ul></div>
+<div class="card no"><h2>不可以</h2><ul><li><b>不换颜色</b>。没有粉色版、没有节日版、没有深浅模式两套。</li><li><b>不描边、不加阴影、不自己切圆角</b>——圆角交给系统。</li><li><b>不单独取猪或硬币</b>当小图标用；界面图标一律用 Lucide。</li><li><b>不在图标里加字</b>，包括 App 名字。</li></ul></div>
+<div class="card"><h2>文件</h2><div class="files"><b>assets/app-icon.svg</b> — 主资源<br><b>assets/app-icon-mark.svg</b> — 去背<br><b>assets/ios/</b> — 13 个 PNG<br>1024 180 167 152 120<br>87 80 76 60 58 40 29 20</div>
+<p style="margin:14px 0 0;font-size:13px;line-height:1.6;color:var(--text-muted)">PNG 由主资源直接渲染，改图标只需改 svg 再重新导一次。</p></div>
+</div>
+
+<div class="row" style="grid-template-columns:1fr 1fr">
+<div class="card"><h2>直接放进 Xcode</h2>
+<ol style="margin:0;padding-left:22px"><li style="font-size:13.5px;line-height:1.8;color:var(--text-muted);margin-bottom:8px">下载 <code>AppIcon.appiconset</code> 整个文件夹（下面的下载卡片）。</li><li style="font-size:13.5px;line-height:1.8;color:var(--text-muted);margin-bottom:8px">在 Xcode 里打开 <code>Assets.xcassets</code>，把已有的 AppIcon 删掉，然后把这个文件夹整体拖进去。</li><li style="font-size:13.5px;line-height:1.8;color:var(--text-muted);margin-bottom:8px">Target → General → App Icons and Launch Screen，确认 App Icon Source 选的是 <code>AppIcon</code>。编译即可，不需要再做任何切图。</li></ol>
+<p style="margin:16px 0 0;font-size:13px;line-height:1.65;color:var(--text-muted)">18 个槽位全部填满：iPhone 与 iPad 的所有 @1x/@2x/@3x，加 1024 的 App Store 图。<code>Contents.json</code> 已写好，Xcode 不会报缺图警告。所有 PNG 都是不透明满幅、无预设圆角——圆角由系统遮罩，这是 App Store 审核的硬要求。</p>
+<div class="files" style="margin-top:16px"><b>assets/ios/AppIcon.appiconset/</b><br>Contents.json + 18 PNG</div>
+</div>
+<div class="card"><h2>深色 / 着色外观（iOS 18+）</h2>
+<div class="anim" style="gap:24px">
+<div class="u"><span class="sq" style="width:104px;height:104px"><img src="../assets/ios/AppIcon-180.png" alt=""></span><span>默认</span></div>
+<div class="u"><span class="sq" style="width:104px;height:104px"><img src="../assets/ios/appearance/AppIcon-dark-180.png" alt=""></span><span>深色</span></div>
+<div class="u"><span class="sq" style="width:104px;height:104px"><img src="../assets/ios/appearance/AppIcon-tinted-180.png" alt=""></span><span>着色</span></div>
+</div>
+<p style="margin:18px 0 0;font-size:13px;line-height:1.65;color:var(--text-muted)">深色版把底色压到云杉 900、暖黄降一档饱和度，避免夜间过亮；着色版是主图标的灰度图，由系统上色，灰阶已加了一点对比度让猪不至于和背景并成一片。</p>
+<p style="margin:12px 0 0;font-size:13px;line-height:1.65;color:var(--text-muted)">这两个是可选的：在 Xcode 的 AppIcon 上把 Appearances 切成 <code>Any, Dark, Tinted</code>，然后把 <code>assets/ios/appearance/</code> 里的两个 1024 拖到对应槽位。不加也不影响上架，系统会自动从默认图生成。</p>
+</div>
+</div>
+
+</body></html>

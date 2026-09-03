@@ -1,0 +1,32 @@
+<!-- @dsCard group="Colors" viewport="700x180" name="Money direction" subtitle="In, out, correction, debt — each has a glyph as well as a colour" -->
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css">
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.js"></script>
+<style>body{margin:0;padding:16px 20px;background:var(--surface-app);color:var(--text-body);font-family:var(--font-text);min-height:180px;box-sizing:border-box}
+.sw{display:flex;gap:10px;flex-wrap:wrap}.chip{border-radius:var(--radius-sm);padding:10px 12px;min-width:96px;font-family:var(--font-rounded);font-weight:700;font-size:12px;line-height:1.35}
+.chip b{display:block;font-size:13px}.chip code{font-family:var(--font-mono);font-size:10px;opacity:.8;font-weight:400}
+.k{font-family:var(--font-mono);font-size:11px;color:var(--text-muted)}
+.lb{font-family:var(--font-rounded);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin-bottom:10px}
+.rw{display:flex;align-items:center;gap:14px;flex-wrap:wrap}</style></head>
+<body><div class="sw" style="gap:12px">
+<div style="flex:1;min-width:118px;background:var(--money-in-bg);color:var(--money-in);border-radius:var(--radius-md);padding:14px">
+<i data-lucide="arrow-down-left" width="22" height="22"></i>
+<div style="font-family:var(--font-rounded);font-weight:800;font-size:15px;margin-top:8px">加进来了</div>
+<div style="font-family:var(--font-rounded);font-weight:900;font-size:22px;font-variant-numeric:tabular-nums">+¥10</div>
+<code class="k" style="display:block;margin-top:6px">money-in</code></div><div style="flex:1;min-width:118px;background:var(--money-out-bg);color:var(--money-out);border-radius:var(--radius-md);padding:14px">
+<i data-lucide="arrow-up-right" width="22" height="22"></i>
+<div style="font-family:var(--font-rounded);font-weight:800;font-size:15px;margin-top:8px">花掉了</div>
+<div style="font-family:var(--font-rounded);font-weight:900;font-size:22px;font-variant-numeric:tabular-nums">−¥15</div>
+<code class="k" style="display:block;margin-top:6px">money-out</code></div><div style="flex:1;min-width:118px;background:var(--money-fix-bg);color:var(--money-fix);border-radius:var(--radius-md);padding:14px">
+<i data-lucide="rotate-ccw" width="22" height="22"></i>
+<div style="font-family:var(--font-rounded);font-weight:800;font-size:15px;margin-top:8px">已改正</div>
+<div style="font-family:var(--font-rounded);font-weight:900;font-size:22px;font-variant-numeric:tabular-nums">±¥3</div>
+<code class="k" style="display:block;margin-top:6px">money-fix</code></div><div style="flex:1;min-width:118px;background:var(--money-debt-bg);color:var(--money-debt);border-radius:var(--radius-md);padding:14px">
+<i data-lucide="alert-triangle" width="22" height="22"></i>
+<div style="font-family:var(--font-rounded);font-weight:800;font-size:15px;margin-top:8px">欠爸爸</div>
+<div style="font-family:var(--font-rounded);font-weight:900;font-size:22px;font-variant-numeric:tabular-nums">−¥20</div>
+<code class="k" style="display:block;margin-top:6px">money-debt</code></div><div style="flex:1;min-width:118px;background:var(--money-goal-track);color:var(--honey-700);border-radius:var(--radius-md);padding:14px">
+<i data-lucide="target" width="22" height="22"></i>
+<div style="font-family:var(--font-rounded);font-weight:800;font-size:15px;margin-top:8px">攒钱目标</div>
+<div style="font-family:var(--font-rounded);font-weight:900;font-size:22px;font-variant-numeric:tabular-nums">¥87/400</div>
+<code class="k" style="display:block;margin-top:6px">honey-700</code></div>
+</div><script>lucide.createIcons()</script></body></html>

@@ -1,0 +1,9 @@
+/* Minimal resets consumers can rely on. No component styling lives here. */
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface-app);color:var(--text-body);font-family:var(--font-text);font-size:var(--type-body-size);line-height:var(--type-body-lh);-webkit-font-smoothing:antialiased;text-wrap:pretty}
+h1,h2,h3,h4{font-family:var(--font-rounded);font-weight:800;letter-spacing:var(--tracking-tight);margin:0}
+a{color:var(--spruce-600);text-decoration-color:var(--spruce-300);text-underline-offset:2px}
+a:hover{color:var(--spruce-800);text-decoration-color:var(--spruce-600)}
+*,*::before,*::after{box-sizing:border-box}
+button{font-family:inherit}
+.fw-num{font-variant-numeric:tabular-nums}

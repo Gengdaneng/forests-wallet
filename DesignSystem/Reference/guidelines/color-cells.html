@@ -1,0 +1,16 @@
+<!-- @dsCard group="Colors" viewport="700x170" name="Week board tri-state" subtitle="Unlogged is a dashed empty cell — never a cross" -->
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css">
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.js"></script>
+<style>body{margin:0;padding:16px 20px;background:var(--surface-app);color:var(--text-body);font-family:var(--font-text);min-height:170px;box-sizing:border-box}
+.sw{display:flex;gap:10px;flex-wrap:wrap}.chip{border-radius:var(--radius-sm);padding:10px 12px;min-width:96px;font-family:var(--font-rounded);font-weight:700;font-size:12px;line-height:1.35}
+.chip b{display:block;font-size:13px}.chip code{font-family:var(--font-mono);font-size:10px;opacity:.8;font-weight:400}
+.k{font-family:var(--font-mono);font-size:11px;color:var(--text-muted)}
+.lb{font-family:var(--font-rounded);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin-bottom:10px}
+.rw{display:flex;align-items:center;gap:14px;flex-wrap:wrap}</style></head>
+<body><div class="rw" style="gap:22px">
+<div style="text-align:center"><div style="width:54px;height:54px;border-radius:var(--radius-cell);background:var(--cell-done-bg);color:var(--cell-done-ink);border:1.5px solid transparent;display:grid;place-items:center;margin:0 auto"><i data-lucide="check" width="26" height="26" stroke-width="3"></i></div>
+<div style="margin-top:8px;font-family:var(--font-rounded);font-weight:700;font-size:13px">做到了</div><code class="k">done</code></div><div style="text-align:center"><div style="width:54px;height:54px;border-radius:var(--radius-cell);background:var(--cell-unlogged-bg);color:var(--text-faint);border:1.5px dashed var(--cell-unlogged-line);display:grid;place-items:center;margin:0 auto"></div>
+<div style="margin-top:8px;font-family:var(--font-rounded);font-weight:700;font-size:13px">爸爸还没记</div><code class="k">unlogged</code></div><div style="text-align:center"><div style="width:54px;height:54px;border-radius:var(--radius-cell);background:var(--cell-future-bg);color:var(--cell-future-ink);border:1.5px solid transparent;display:grid;place-items:center;margin:0 auto"></div>
+<div style="margin-top:8px;font-family:var(--font-rounded);font-weight:700;font-size:13px">还没到</div><code class="k">future</code></div><div style="text-align:center"><div style="width:54px;height:54px;border-radius:var(--radius-cell);background:var(--cell-missed-bg);color:var(--cell-missed-ink);border:1.5px solid transparent;display:grid;place-items:center;margin:0 auto"><i data-lucide="minus" width="26" height="26" stroke-width="3"></i></div>
+<div style="margin-top:8px;font-family:var(--font-rounded);font-weight:700;font-size:13px">周日结算后未达成</div><code class="k">missed</code></div>
+</div><script>lucide.createIcons()</script></body></html>
