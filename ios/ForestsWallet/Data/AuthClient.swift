@@ -268,11 +268,132 @@ struct AuthClient: Sendable {
         )
     }
 
+    func createCheckinItem(
+        token: String,
+        idempotencyKey: String,
+        request: CreateCheckinItemRequest
+    ) async throws -> CheckinItemResponse {
+        try await send(
+            method: "POST",
+            path: "/v1/checkin-items",
+            body: request,
+            token: token,
+            headers: ["Idempotency-Key": idempotencyKey],
+            mapError: Self.mapBoardWriteError
+        )
+    }
+
+    func updateCheckinItem(
+        token: String,
+        id: String,
+        idempotencyKey: String,
+        request: UpdateCheckinItemRequest
+    ) async throws -> CheckinItemResponse {
+        try await send(
+            method: "POST",
+            path: "/v1/checkin-items/\(Self.pathID(id))",
+            body: request,
+            token: token,
+            headers: ["Idempotency-Key": idempotencyKey],
+            mapError: Self.mapBoardWriteError
+        )
+    }
+
+    func archiveCheckinItem(
+        token: String,
+        id: String,
+        idempotencyKey: String
+    ) async throws {
+        let _: OkResponse = try await send(
+            method: "POST",
+            path: "/v1/checkin-items/\(Self.pathID(id))/archive",
+            body: EmptyJSON(),
+            token: token,
+            headers: ["Idempotency-Key": idempotencyKey],
+            mapError: Self.mapBoardWriteError
+        )
+    }
+
+    func setCheckinTick(
+        token: String,
+        id: String,
+        idempotencyKey: String,
+        request: TickRequest
+    ) async throws -> TickResponse {
+        try await send(
+            method: "POST",
+            path: "/v1/checkin-items/\(Self.pathID(id))/ticks",
+            body: request,
+            token: token,
+            headers: ["Idempotency-Key": idempotencyKey],
+            mapError: Self.mapBoardWriteError
+        )
+    }
+
+    func createSettlement(
+        token: String,
+        idempotencyKey: String,
+        request: SettlementRequest
+    ) async throws -> CreateTransactionResponse {
+        try await send(
+            method: "POST",
+            path: "/v1/settlements",
+            body: request,
+            token: token,
+            headers: ["Idempotency-Key": idempotencyKey],
+            mapError: Self.mapBoardWriteError
+        )
+    }
+
+    func createGoal(
+        token: String,
+        idempotencyKey: String,
+        request: CreateGoalRequest
+    ) async throws -> GoalMutationResponse {
+        try await send(
+            method: "POST",
+            path: "/v1/goals",
+            body: request,
+            token: token,
+            headers: ["Idempotency-Key": idempotencyKey],
+            mapError: Self.mapBoardWriteError
+        )
+    }
+
+    func archiveGoal(
+        token: String,
+        id: String,
+        idempotencyKey: String
+    ) async throws -> GoalArchiveResponse {
+        try await send(
+            method: "POST",
+            path: "/v1/goals/\(Self.pathID(id))/archive",
+            body: EmptyJSON(),
+            token: token,
+            headers: ["Idempotency-Key": idempotencyKey],
+            mapError: Self.mapBoardWriteError
+        )
+    }
+
+    private static func pathID(_ id: String) -> String {
+        id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id
+    }
+
     private static func mapLedgerWriteError(_ status: Int, _ code: String?) -> AuthAPIError? {
         switch status {
         case 403: return .forbidden
         case 409: return .conflict
         case 422: return .invalidRequest
+        default: return nil
+        }
+    }
+
+    private static func mapBoardWriteError(_ status: Int, _ code: String?) -> AuthAPIError? {
+        switch status {
+        case 400, 422: return .invalidRequest
+        case 403: return .forbidden
+        case 404: return .notFound
+        case 409: return .conflict
         default: return nil
         }
     }

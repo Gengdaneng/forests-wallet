@@ -9,7 +9,7 @@ This repository is the open-source native iPhone/iPad app and its design-system 
 
 One universal SwiftUI target. Authentication and paired-session ledger traffic talk to `https://wallet.gengdaneng.com`. Launch arguments keep in-memory sample data for tests and previews:
 
-- **iPhone** — parent surface (register, record, board, settle, history, settings)
+- **iPhone** — parent surface (register, record, board, settle, goals, history, settings)
 - **iPad** — Forrest's surface (read-only home, board, rules, wishes)
 
 The first launch is unpaired unless a Keychain session already exists. On iPhone, register as parent (an operator must open the bootstrap window first). On iPad, enter the six-digit pairing code from the parent device.

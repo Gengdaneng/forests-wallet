@@ -6,6 +6,7 @@ enum DeviceRole: String, Codable, Sendable {
 }
 
 struct Goal: Hashable, Sendable {
+    var id: String? = nil
     var title: String
     var targetCents: Int
 }
@@ -25,11 +26,19 @@ struct LedgerEntry: Identifiable, Hashable, Sendable {
 }
 
 struct BoardItem: Identifiable, Hashable, Sendable {
-    var id: String { name }
+    var id: String
     var name: String
     var goal: Int
     var rewardCents: Int
     var days: [BoardCellState]
+
+    init(id: String? = nil, name: String, goal: Int, rewardCents: Int, days: [BoardCellState]) {
+        self.id = id ?? name
+        self.name = name
+        self.goal = goal
+        self.rewardCents = rewardCents
+        self.days = days
+    }
 
     var asWeekItem: WeekBoardItem {
         WeekBoardItem(name: name, goal: goal, rewardCents: rewardCents, days: days)
@@ -102,9 +111,12 @@ struct WalletSnapshot: Hashable, Sendable {
         SettlementBonus(rewardCents: bonusCents, met: !board.isEmpty && board.allSatisfy(\.met))
     }
 
-    var settlementTotalCents: Int {
+    var settlementItemCents: Int {
         settlementLines.reduce(0) { $0 + ($1.met ? $1.rewardCents : 0) }
-            + (bonus.met ? bonus.rewardCents : 0)
+    }
+
+    var settlementTotalCents: Int {
+        settlementItemCents + (bonus.met ? bonus.rewardCents : 0)
     }
 }
 
@@ -125,10 +137,12 @@ protocol WalletServing: AnyObject {
 
     func setOnline(_ online: Bool)
     func recordEntry(direction: MoneyDirection, yuan: Int, reason: String, categoryID: String?) async -> Bool
-    func toggleBoardCell(row: Int, day: Int)
-    func confirmSettlement()
-    func saveBoardItem(at index: Int?, name: String, goal: Int, rewardCents: Int)
-    func deleteBoardItem(at index: Int)
+    func toggleBoardCell(row: Int, day: Int) async
+    func confirmSettlement() async
+    func saveBoardItem(at index: Int?, name: String, goal: Int, rewardCents: Int) async
+    func deleteBoardItem(at index: Int) async
+    func saveGoal(title: String, targetCents: Int) async
+    func archiveGoal() async
     func setBonusCents(_ cents: Int)
     func setSundayReminder(_ on: Bool)
     func setPreviewNeedsPIN(_ on: Bool)

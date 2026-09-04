@@ -32,6 +32,7 @@ final class SampleWalletStore: WalletServing {
     var balanceCents: Int = 8700
     var goal: Goal? = SampleData.goal
     var weekLabel: String? = SampleData.weekLabel
+    var weekStartISO: String?
     var categories: [SpendCategory] = SpendCategory.all
     var transactions: [LedgerEntry] = SampleData.transactions
     var board: [BoardItem] = SampleData.board
@@ -244,18 +245,31 @@ final class SampleWalletStore: WalletServing {
         return applyLocalEntry(direction: direction, yuan: yuan, reason: reason, categoryID: categoryID)
     }
 
-    func toggleBoardCell(row: Int, day: Int) {
-        guard authClient == nil else { return }
-        guard role == .parent else { return }
+    func toggleBoardCell(row: Int, day: Int) async {
+        guard role == .parent else {
+            lastRecordRejectedReason = "儿童端不能记账"
+            return
+        }
         guard board.indices.contains(row), board[row].days.indices.contains(day) else { return }
         let current = board[row].days[day]
         guard current != .future else { return }
+        if authClient != nil {
+            await toggleRemoteBoardCell(row: row, day: day, currentlyDone: current == .done)
+            return
+        }
         board[row].days[day] = current == .done ? .unlogged : .done
     }
 
-    func confirmSettlement() {
-        guard authClient == nil else { return }
-        guard role == .parent, !settledThisWeek else { return }
+    func confirmSettlement() async {
+        guard role == .parent else {
+            lastRecordRejectedReason = "儿童端不能记账"
+            return
+        }
+        guard !settledThisWeek else { return }
+        if authClient != nil {
+            await confirmRemoteSettlement()
+            return
+        }
         let yuan = snapshot.settlementTotalCents / 100
         let ok = applyLocalEntry(direction: .income, yuan: max(yuan, 0) == 0 ? 0 : yuan, reason: "本周基础零花钱", categoryID: nil)
         if ok || yuan == 0 {
@@ -266,11 +280,17 @@ final class SampleWalletStore: WalletServing {
         }
     }
 
-    func saveBoardItem(at index: Int?, name: String, goal: Int, rewardCents: Int) {
-        guard authClient == nil else { return }
-        guard role == .parent else { return }
+    func saveBoardItem(at index: Int?, name: String, goal: Int, rewardCents: Int) async {
+        guard role == .parent else {
+            lastRecordRejectedReason = "儿童端不能记账"
+            return
+        }
         let trimmed = String(name.trimmingCharacters(in: .whitespacesAndNewlines).prefix(6))
         guard !trimmed.isEmpty, goal > 0, goal <= 7, rewardCents >= 0 else { return }
+        if authClient != nil {
+            await saveRemoteBoardItem(at: index, name: trimmed, goal: goal, rewardCents: rewardCents)
+            return
+        }
         if let index, board.indices.contains(index) {
             board[index].name = trimmed
             board[index].goal = goal
@@ -289,15 +309,48 @@ final class SampleWalletStore: WalletServing {
         }
     }
 
-    func deleteBoardItem(at index: Int) {
-        guard authClient == nil else { return }
-        guard role == .parent, board.indices.contains(index) else { return }
+    func deleteBoardItem(at index: Int) async {
+        guard role == .parent else {
+            lastRecordRejectedReason = "儿童端不能记账"
+            return
+        }
+        guard board.indices.contains(index) else { return }
+        if authClient != nil {
+            await archiveRemoteBoardItem(at: index)
+            return
+        }
         let name = board[index].name
         board.remove(at: index)
         changes.insert(
             RuleChange(text: "不再打卡「\(name)」", date: "\(Self.todayLabel) · 和爸爸一起决定的"),
             at: 0
         )
+    }
+
+    func saveGoal(title: String, targetCents: Int) async {
+        guard role == .parent else {
+            lastRecordRejectedReason = "儿童端不能记账"
+            return
+        }
+        let trimmed = String(title.trimmingCharacters(in: .whitespacesAndNewlines).prefix(32))
+        guard !trimmed.isEmpty, targetCents > 0, targetCents % 100 == 0 else { return }
+        if authClient != nil {
+            await saveRemoteGoal(title: trimmed, targetCents: targetCents)
+            return
+        }
+        goal = Goal(title: trimmed, targetCents: targetCents)
+    }
+
+    func archiveGoal() async {
+        guard role == .parent else {
+            lastRecordRejectedReason = "儿童端不能记账"
+            return
+        }
+        if authClient != nil {
+            await archiveRemoteGoal()
+            return
+        }
+        goal = nil
     }
 
     func setBonusCents(_ cents: Int) {
@@ -453,10 +506,214 @@ final class SampleWalletStore: WalletServing {
         transactions.insert(contentsOf: extras, at: 0)
     }
 
+    private func toggleRemoteBoardCell(row: Int, day: Int, currentlyDone: Bool) async {
+        guard isOnline else {
+            lastRecordRejectedReason = "没有写入任何记录 —— 记账必须联网"
+            return
+        }
+        guard beginWriteWork() else { return }
+        defer { isAuthBusy = false }
+        guard let authClient, let token = storedToken() else {
+            present(.unauthorized)
+            lastRecordRejectedReason = AuthAPIError.unauthorized.userMessage
+            return
+        }
+        let itemID = board[row].id
+        let start = weekStartISO ?? LedgerDate.weekStartISO()
+        guard let iso = LedgerDate.addDays(start, days: day) else { return }
+        guard iso <= LedgerDate.todayISO() else { return }
+        let key = UUID().uuidString
+        do {
+            _ = try await authClient.setCheckinTick(
+                token: token,
+                id: itemID,
+                idempotencyKey: key,
+                request: TickRequest(localDate: iso, ticked: !currentlyDone)
+            )
+            isOnline = true
+            await refreshLedger()
+        } catch {
+            presentWriteError(error)
+        }
+    }
+
+    private func saveRemoteBoardItem(at index: Int?, name: String, goal: Int, rewardCents: Int) async {
+        guard isOnline else {
+            lastRecordRejectedReason = "没有写入任何记录 —— 记账必须联网"
+            return
+        }
+        guard beginWriteWork() else { return }
+        defer { isAuthBusy = false }
+        guard let authClient, let token = storedToken() else {
+            present(.unauthorized)
+            lastRecordRejectedReason = AuthAPIError.unauthorized.userMessage
+            return
+        }
+        let key = UUID().uuidString
+        do {
+            if let index, board.indices.contains(index) {
+                _ = try await authClient.updateCheckinItem(
+                    token: token,
+                    id: board[index].id,
+                    idempotencyKey: key,
+                    request: UpdateCheckinItemRequest(
+                        name: name,
+                        weeklyTarget: goal,
+                        amountFen: rewardCents
+                    )
+                )
+            } else {
+                _ = try await authClient.createCheckinItem(
+                    token: token,
+                    idempotencyKey: key,
+                    request: CreateCheckinItemRequest(
+                        name: name,
+                        weeklyTarget: goal,
+                        amountFen: rewardCents
+                    )
+                )
+            }
+            isOnline = true
+            await refreshLedger()
+        } catch {
+            presentWriteError(error)
+        }
+    }
+
+    private func archiveRemoteBoardItem(at index: Int) async {
+        guard isOnline else {
+            lastRecordRejectedReason = "没有写入任何记录 —— 记账必须联网"
+            return
+        }
+        guard beginWriteWork() else { return }
+        defer { isAuthBusy = false }
+        guard let authClient, let token = storedToken() else {
+            present(.unauthorized)
+            lastRecordRejectedReason = AuthAPIError.unauthorized.userMessage
+            return
+        }
+        let key = UUID().uuidString
+        do {
+            try await authClient.archiveCheckinItem(
+                token: token,
+                id: board[index].id,
+                idempotencyKey: key
+            )
+            isOnline = true
+            await refreshLedger()
+        } catch {
+            presentWriteError(error)
+        }
+    }
+
+    private func confirmRemoteSettlement() async {
+        guard isOnline else {
+            lastRecordRejectedReason = "没有写入任何记录 —— 记账必须联网"
+            return
+        }
+        guard beginWriteWork() else { return }
+        defer { isAuthBusy = false }
+        guard let authClient, let token = storedToken() else {
+            present(.unauthorized)
+            lastRecordRejectedReason = AuthAPIError.unauthorized.userMessage
+            return
+        }
+        let weekStart = weekStartISO ?? LedgerDate.weekStartISO()
+        let key = UUID().uuidString
+        do {
+            let response = try await authClient.createSettlement(
+                token: token,
+                idempotencyKey: key,
+                request: SettlementRequest(weekStart: weekStart)
+            )
+            applyCreated(response)
+            if response.transaction.amountFen > 0 {
+                pendingCelebrationCents = response.transaction.amountFen
+            }
+            settledThisWeek = true
+            isOnline = true
+            await refreshLedger()
+        } catch {
+            let mapped = (error as? AuthAPIError) ?? .serverFailure
+            switch mapped {
+            case .conflict:
+                lastRecordRejectedReason = "这一周已经结算过了"
+                lastAuthErrorMessage = nil
+                lastAuthErrorIsOffline = false
+                await refreshLedger()
+                if role == .parent {
+                    settledThisWeek = true
+                }
+            case .invalidRequest:
+                lastRecordRejectedReason = "本周没有达成的项目，还不能结算"
+                lastAuthErrorMessage = nil
+                lastAuthErrorIsOffline = false
+            default:
+                presentWriteError(error)
+            }
+        }
+    }
+
+    private func saveRemoteGoal(title: String, targetCents: Int) async {
+        guard isOnline else {
+            lastRecordRejectedReason = "没有写入任何记录 —— 记账必须联网"
+            return
+        }
+        guard beginWriteWork() else { return }
+        defer { isAuthBusy = false }
+        guard let authClient, let token = storedToken() else {
+            present(.unauthorized)
+            lastRecordRejectedReason = AuthAPIError.unauthorized.userMessage
+            return
+        }
+        let key = UUID().uuidString
+        do {
+            let response = try await authClient.createGoal(
+                token: token,
+                idempotencyKey: key,
+                request: CreateGoalRequest(name: title, targetAmountFen: targetCents)
+            )
+            goal = LedgerMapping.goal(from: response.goal)
+            isOnline = true
+            await refreshLedger()
+        } catch {
+            presentWriteError(error)
+        }
+    }
+
+    private func archiveRemoteGoal() async {
+        guard isOnline else {
+            lastRecordRejectedReason = "没有写入任何记录 —— 记账必须联网"
+            return
+        }
+        guard let goalID = goal?.id, !goalID.isEmpty else { return }
+        guard beginWriteWork() else { return }
+        defer { isAuthBusy = false }
+        guard let authClient, let token = storedToken() else {
+            present(.unauthorized)
+            lastRecordRejectedReason = AuthAPIError.unauthorized.userMessage
+            return
+        }
+        let key = UUID().uuidString
+        do {
+            _ = try await authClient.archiveGoal(
+                token: token,
+                id: goalID,
+                idempotencyKey: key
+            )
+            goal = nil
+            isOnline = true
+            await refreshLedger()
+        } catch {
+            presentWriteError(error)
+        }
+    }
+
     private func applyEmptyRemoteLedger() {
         balanceCents = 0
         goal = nil
         weekLabel = nil
+        weekStartISO = nil
         categories = SpendCategory.all
         transactions = []
         board = []
@@ -472,6 +729,7 @@ final class SampleWalletStore: WalletServing {
         balanceCents = remote.balanceFen
         goal = LedgerMapping.goal(from: remote.goal)
         weekLabel = LedgerMapping.weekLabel(from: remote.week)
+        weekStartISO = remote.week?.start
         categories = LedgerMapping.categories(from: remote.categories)
         transactions = LedgerMapping.entries(from: remote.recentTransactions)
         board = LedgerMapping.board(
@@ -483,6 +741,10 @@ final class SampleWalletStore: WalletServing {
         changes = LedgerMapping.changes(from: remote.ruleChanges)
         adhoc = []
         wishes = []
+        settledThisWeek = LedgerMapping.settledThisWeek(
+            transactions: remote.recentTransactions,
+            weekStart: remote.week?.start
+        )
     }
 
     private func beginWriteWork() -> Bool {

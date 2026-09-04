@@ -26,10 +26,23 @@ struct ParentBoardView: View {
                     items: snap.board.map(\.asWeekItem),
                     size: .parent,
                     weekLabel: snap.weekLabel,
-                    onToggle: { r, c in store.toggleBoardCell(row: r, day: c) }
+                    onToggle: { r, c in Task { await store.toggleBoardCell(row: r, day: c) } }
                 )
             }
             StatusBanner(kind: .norealmoney, text: "随时可以补勾 · 只有周日结算才会算成未达成", size: .parent)
+            if let reason = store.lastRecordRejectedReason {
+                StatusBanner(
+                    kind: store.lastAuthErrorIsOffline ? .offline : .failed,
+                    text: reason,
+                    size: .parent
+                )
+            } else if let message = store.lastAuthErrorMessage {
+                StatusBanner(
+                    kind: store.lastAuthErrorIsOffline ? .offline : .failed,
+                    text: message,
+                    size: .parent
+                )
+            }
 
             FWCard {
                 VStack(alignment: .leading, spacing: 0) {
@@ -53,39 +66,44 @@ struct ParentBoardView: View {
                         }
                     }
 
-                    Button {
-                        bonusDraft = "\(MoneyFormat.yuanNumber(snap.bonusCents))"
-                        bonusEdit = true
-                    } label: {
-                        HStack(spacing: 12) {
-                            FWIcon(glyph: .gift, size: 18)
-                                .foregroundStyle(FWColor.honey700)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("全部达成奖励")
-                                    .font(FWType.rounded(FWType.body, weight: .bold))
-                                    .foregroundStyle(FWColor.textStrong)
-                                Text("\(snap.board.count) 项都做到才有")
-                                    .font(FWType.text(FWType.caption, weight: .regular))
-                                    .foregroundStyle(FWColor.textMuted)
+                    if !store.isRemoteAuth {
+                        Button {
+                            bonusDraft = "\(MoneyFormat.yuanNumber(snap.bonusCents))"
+                            bonusEdit = true
+                        } label: {
+                            HStack(spacing: 12) {
+                                FWIcon(glyph: .gift, size: 18)
+                                    .foregroundStyle(FWColor.honey700)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("全部达成奖励")
+                                        .font(FWType.rounded(FWType.body, weight: .bold))
+                                        .foregroundStyle(FWColor.textStrong)
+                                    Text("\(snap.board.count) 项都做到才有")
+                                        .font(FWType.text(FWType.caption, weight: .regular))
+                                        .foregroundStyle(FWColor.textMuted)
+                                }
+                                Spacer()
+                                Text("¥\(MoneyFormat.yuanNumber(snap.bonusCents))")
+                                    .font(FWType.rounded(FWType.amountSm, weight: .heavy))
+                                    .monospacedDigit()
+                                    .foregroundStyle(FWColor.honey700)
+                                FWIcon(glyph: .chevronRight, size: 18)
+                                    .foregroundStyle(FWColor.textFaint)
                             }
-                            Spacer()
-                            Text("¥\(MoneyFormat.yuanNumber(snap.bonusCents))")
-                                .font(FWType.rounded(FWType.amountSm, weight: .heavy))
-                                .monospacedDigit()
-                                .foregroundStyle(FWColor.honey700)
-                            FWIcon(glyph: .chevronRight, size: 18)
-                                .foregroundStyle(FWColor.textFaint)
+                            .frame(minHeight: FWSpace.touchParent)
                         }
-                        .frame(minHeight: FWSpace.touchParent)
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
 
                     HStack(alignment: .firstTextBaseline, spacing: 10) {
                         Text("按现在的进度，本周")
                             .font(FWType.rounded(FWType.head, weight: .heavy))
                             .foregroundStyle(FWColor.textStrong)
                         Spacer()
-                        AmountText(cents: snap.settlementTotalCents, direction: .income)
+                        AmountText(
+                            cents: store.isRemoteAuth ? snap.settlementItemCents : snap.settlementTotalCents,
+                            direction: .income
+                        )
                     }
                     .padding(.top, FWSpace.s4)
                     .overlay(alignment: .top) {
@@ -105,22 +123,26 @@ struct ParentBoardView: View {
                     }(),
                     onCancel: { self.editing = nil },
                     onSave: { name, goal, cents in
-                        switch editing {
-                        case .new: store.saveBoardItem(at: nil, name: name, goal: goal, rewardCents: cents)
-                        case .index(let i): store.saveBoardItem(at: i, name: name, goal: goal, rewardCents: cents)
-                        }
+                        let target = editing
                         self.editing = nil
+                        Task {
+                            switch target {
+                            case .new: await store.saveBoardItem(at: nil, name: name, goal: goal, rewardCents: cents)
+                            case .index(let i): await store.saveBoardItem(at: i, name: name, goal: goal, rewardCents: cents)
+                            }
+                        }
                     },
                     onDelete: {
-                        if case .index(let i) = editing {
-                            store.deleteBoardItem(at: i)
-                        }
+                        let target = editing
                         self.editing = nil
+                        if case .index(let i) = target {
+                            Task { await store.deleteBoardItem(at: i) }
+                        }
                     }
                 )
             }
 
-            if bonusEdit {
+            if bonusEdit, !store.isRemoteAuth {
                 FWCard(tone: .sunken) {
                     VStack(alignment: .leading, spacing: FWSpace.s4) {
                         FWTextField(label: "全部达成奖励（元）", value: $bonusDraft, keyboard: .numberPad)

@@ -85,7 +85,11 @@ struct ChildBoardView: View {
                     Text("周日一起算算看")
                         .font(FWType.rounded(FWType.childHead, weight: .heavy))
                         .foregroundStyle(FWColor.textStrong)
-                    SettlementSummary(lines: snap.settlementLines, bonus: snap.bonus, size: .child)
+                    SettlementSummary(
+                        lines: snap.settlementLines,
+                        bonus: store.isRemoteAuth ? nil : snap.bonus,
+                        size: .child
+                    )
                     Text("现在还没到周日，空着的格子只是爸爸还没记。")
                         .font(FWType.text(FWType.childBody, weight: .regular))
                         .foregroundStyle(FWColor.spruce600)
@@ -120,13 +124,15 @@ struct ChildRulesView: View {
                             kind: .base
                         )
                     }
-                    RuleRow(
-                        name: "三项全达成奖励",
-                        detail: "三项都做到才有",
-                        rewardCents: snap.bonusCents,
-                        size: .child,
-                        kind: .base
-                    )
+                    if !store.isRemoteAuth {
+                        RuleRow(
+                            name: "三项全达成奖励",
+                            detail: "三项都做到才有",
+                            rewardCents: snap.bonusCents,
+                            size: .child,
+                            kind: .base
+                        )
+                    }
                 }
             }
             FWCard(variant: .child) {

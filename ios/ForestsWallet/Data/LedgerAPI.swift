@@ -38,6 +38,8 @@ struct RemoteTransaction: Decodable, Equatable, Sendable {
     var reversesId: String?
     var replacesId: String?
     var balanceAfterFen: Int?
+    var settlementWeekStart: String?
+    var ruleSnapshot: String?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -48,6 +50,8 @@ struct RemoteTransaction: Decodable, Equatable, Sendable {
         case reversesId = "reverses_id"
         case replacesId = "replaces_id"
         case balanceAfterFen = "balance_after_fen"
+        case settlementWeekStart = "settlement_week_start"
+        case ruleSnapshot = "rule_snapshot"
     }
 }
 
@@ -213,6 +217,94 @@ struct CorrectionResponse: Decodable, Equatable, Sendable {
     }
 }
 
+struct CreateCheckinItemRequest: Encodable, Equatable, Sendable {
+    var name: String
+    var weeklyTarget: Int
+    var amountFen: Int
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case weeklyTarget = "weekly_target"
+        case amountFen = "amount_fen"
+    }
+}
+
+struct UpdateCheckinItemRequest: Encodable, Equatable, Sendable {
+    var name: String?
+    var weeklyTarget: Int?
+    var amountFen: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case weeklyTarget = "weekly_target"
+        case amountFen = "amount_fen"
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(name, forKey: .name)
+        try container.encodeIfPresent(weeklyTarget, forKey: .weeklyTarget)
+        try container.encodeIfPresent(amountFen, forKey: .amountFen)
+    }
+}
+
+struct CheckinItemResponse: Decodable, Equatable, Sendable {
+    var item: RemoteCheckinItem
+}
+
+struct TickRequest: Encodable, Equatable, Sendable {
+    var localDate: String
+    var ticked: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case localDate = "local_date"
+        case ticked
+    }
+}
+
+struct TickResponse: Decodable, Equatable, Sendable {
+    var itemId: String
+    var localDate: String
+    var ticked: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case itemId = "item_id"
+        case localDate = "local_date"
+        case ticked
+    }
+}
+
+struct SettlementRequest: Encodable, Equatable, Sendable {
+    var weekStart: String
+
+    enum CodingKeys: String, CodingKey {
+        case weekStart = "week_start"
+    }
+}
+
+struct CreateGoalRequest: Encodable, Equatable, Sendable {
+    var name: String
+    var targetAmountFen: Int
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case targetAmountFen = "target_amount_fen"
+    }
+}
+
+struct GoalMutationResponse: Decodable, Equatable, Sendable {
+    var goal: RemoteGoal
+    var archived: RemoteGoal?
+}
+
+struct GoalArchiveResponse: Decodable, Equatable, Sendable {
+    var goal: RemoteGoal
+}
+
+struct OkResponse: Decodable, Equatable, Sendable {
+    var ok: Bool?
+}
+
 enum LedgerDate {
     static let shanghai = TimeZone(identifier: "Asia/Shanghai")!
 
@@ -226,6 +318,17 @@ enum LedgerDate {
             parts.month ?? 0,
             parts.day ?? 0
         )
+    }
+
+    /// Monday of the Asia/Shanghai week containing `now`.
+    static func weekStartISO(now: Date = Date()) -> String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = shanghai
+        let today = calendar.startOfDay(for: now)
+        let weekday = calendar.component(.weekday, from: today) // 1 = Sunday
+        let daysFromMonday = (weekday + 5) % 7
+        let monday = calendar.date(byAdding: .day, value: -daysFromMonday, to: today) ?? today
+        return todayISO(now: monday)
     }
 
     static func chinese(_ iso: String) -> String {
@@ -292,12 +395,12 @@ enum LedgerMapping {
         let reversedIDs = Set(rows.compactMap(\.reversesId))
         return rows.map { row in
             let reversed = reversedIDs.contains(row.id)
-            let reason = (row.memo ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            let reason = displayReason(kind: row.kind, memo: row.memo)
             let kind = row.kind
             let showCategory = kind == "spend" || (kind != "reverse" && row.amountFen < 0)
             return LedgerEntry(
                 id: row.id,
-                reason: reason.isEmpty ? "（没写事由）" : reason,
+                reason: reason,
                 cents: abs(row.amountFen),
                 direction: direction(kind: kind, amountFen: row.amountFen),
                 date: LedgerDate.chinese(row.occurredOn),
@@ -316,11 +419,30 @@ enum LedgerMapping {
         return LedgerDate.weekBand(start: week.start, end: week.end)
     }
 
+    static func displayReason(kind: String, memo: String?) -> String {
+        let trimmed = (memo ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty, kind == "allowance_weekly" {
+            return "本周基础零花钱"
+        }
+        return trimmed.isEmpty ? "（没写事由）" : trimmed
+    }
+
     static func goal(from remote: RemoteGoal?) -> Goal? {
         guard let remote else { return nil }
         let title = remote.name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { return nil }
-        return Goal(title: title, targetCents: remote.targetAmountFen)
+        return Goal(id: remote.id, title: title, targetCents: remote.targetAmountFen)
+    }
+
+    static func settledThisWeek(transactions: [RemoteTransaction], weekStart: String?) -> Bool {
+        guard let weekStart else { return false }
+        return transactions.contains { row in
+            guard row.kind == "allowance_weekly" else { return false }
+            if let marked = row.settlementWeekStart {
+                return marked == weekStart
+            }
+            return row.occurredOn == weekStart
+        }
     }
 
     static func categories(from remote: [RemoteCategory]) -> [SpendCategory] {
@@ -351,6 +473,7 @@ enum LedgerMapping {
                 return .unlogged
             }
             return BoardItem(
+                id: item.id,
                 name: item.name,
                 goal: item.weeklyTarget,
                 rewardCents: item.amountFen,

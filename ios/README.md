@@ -10,7 +10,7 @@ Production talks only to `https://wallet.gengdaneng.com`. Parent registration (`
 
 Bearer token, device ID, and role are stored in the Keychain. They are never written to `UserDefaults`, source files, logs, screenshots, analytics, or UI-test arguments. Clearing pairing / a rejected token removes the Keychain session.
 
-Paired production sessions load `GET /v1/snapshot` into parent/child home, history, and related screens, and parent writes go to `POST /v1/transactions` (and correction when the existing 更正 flow is used). Launch arguments keep deterministic in-memory sample mode for previews, unit tests, and UI tests — the test suite does not need a live server:
+Paired production sessions load `GET /v1/snapshot` into parent/child home, board, rules, wishes, history, and related screens. Parent writes go to `POST /v1/transactions` (and correction when the existing 更正 flow is used), check-in ticks/items, `POST /v1/settlements` for the Sunday ritual, and `POST /v1/goals` (archive does not spend). Launch arguments keep deterministic in-memory sample mode for previews, unit tests, and UI tests — the test suite does not need a live server:
 
 - `-FWRoleParent` — skip bootstrap, open parent home
 - `-FWRoleChild` — skip pairing/welcome, open child home
