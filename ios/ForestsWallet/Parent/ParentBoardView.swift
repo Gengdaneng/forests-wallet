@@ -25,7 +25,7 @@ struct ParentBoardView: View {
                 WeekBoard(
                     items: snap.board.map(\.asWeekItem),
                     size: .parent,
-                    weekLabel: SampleData.weekLabel,
+                    weekLabel: snap.weekLabel,
                     onToggle: { r, c in store.toggleBoardCell(row: r, day: c) }
                 )
             }

@@ -26,18 +26,30 @@ struct ParentHistoryView: View {
                     }
                 }
             }
-            FWCard(tone: .sunken) {
-                HStack(alignment: .top, spacing: 10) {
-                    FWIcon(glyph: .link, size: 18)
-                        .foregroundStyle(FWColor.moneyFix)
-                    Text("10月2日「乐高小车 −¥14」已被冲正，并写入正确的一笔。原记录、冲正、正确记录三条互相关联，都留在流水里。")
-                        .font(FWType.text(FWType.caption, weight: .regular))
-                        .foregroundStyle(FWColor.textMuted)
-                        .fixedSize(horizontal: false, vertical: true)
+            if let note = correctionNote(snap) {
+                FWCard(tone: .sunken) {
+                    HStack(alignment: .top, spacing: 10) {
+                        FWIcon(glyph: .link, size: 18)
+                            .foregroundStyle(FWColor.moneyFix)
+                        Text(note)
+                            .font(FWType.text(FWType.caption, weight: .regular))
+                            .foregroundStyle(FWColor.textMuted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
         }
         .accessibilityIdentifier("screen.parent.history")
+    }
+
+    private func correctionNote(_ snap: WalletSnapshot) -> String? {
+        if snap.transactions.contains(where: { $0.reason == "乐高小车" && $0.reversed }) {
+            return "10月2日「乐高小车 −¥14」已被冲正，并写入正确的一笔。原记录、冲正、正确记录三条互相关联，都留在流水里。"
+        }
+        if snap.transactions.contains(where: \.reversed) {
+            return "原记录会被冲正，并写入正确的一笔。原记录、冲正、正确记录三条互相关联，都留在流水里。"
+        }
+        return nil
     }
 }
 

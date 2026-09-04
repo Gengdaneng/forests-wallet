@@ -37,6 +37,14 @@ struct ParentHomeView: View {
 
             if !snap.isOnline {
                 StatusBanner(kind: .failed, text: "没有写入任何记录 —— 记账必须联网", size: .parent)
+            } else if let reason = store.lastRecordRejectedReason {
+                StatusBanner(kind: .failed, text: reason, size: .parent)
+            } else if let message = store.lastAuthErrorMessage {
+                StatusBanner(
+                    kind: store.lastAuthErrorIsOffline ? .offline : .failed,
+                    text: message,
+                    size: .parent
+                )
             }
 
             FWCard(tone: .leaf, action: { nav.settleView = true }) {
@@ -59,14 +67,16 @@ struct ParentHomeView: View {
             }
             .accessibilityIdentifier("home.settle")
 
-            FWCard(tone: .honey) {
-                GoalProgress(
-                    title: snap.goal.title,
-                    savedCents: snap.balanceCents,
-                    targetCents: snap.goal.targetCents,
-                    size: .parent,
-                    reached: snap.goalReached
-                )
+            if let goal = snap.goal {
+                FWCard(tone: .honey) {
+                    GoalProgress(
+                        title: goal.title,
+                        savedCents: snap.balanceCents,
+                        targetCents: goal.targetCents,
+                        size: .parent,
+                        reached: snap.goalReached
+                    )
+                }
             }
 
             FWCard {

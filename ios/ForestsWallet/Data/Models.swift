@@ -11,7 +11,7 @@ struct Goal: Hashable, Sendable {
 }
 
 struct LedgerEntry: Identifiable, Hashable, Sendable {
-    var id: Int
+    var id: String
     var reason: String
     var cents: Int
     var direction: MoneyDirection
@@ -19,6 +19,9 @@ struct LedgerEntry: Identifiable, Hashable, Sendable {
     var categoryID: String?
     var balanceAfter: Int
     var reversed: Bool
+    var occurredOnISO: String? = nil
+    var kind: String? = nil
+    var isCorrectable: Bool = true
 }
 
 struct BoardItem: Identifiable, Hashable, Sendable {
@@ -69,7 +72,8 @@ struct WalletSnapshot: Hashable, Sendable {
     var role: DeviceRole?
     var isOnline: Bool
     var balanceCents: Int
-    var goal: Goal
+    var goal: Goal?
+    var weekLabel: String?
     var transactions: [LedgerEntry]
     var board: [BoardItem]
     var bonusCents: Int
@@ -84,7 +88,8 @@ struct WalletSnapshot: Hashable, Sendable {
     var pendingCelebrationCents: Int?
 
     var goalReached: Bool {
-        balanceCents >= goal.targetCents
+        guard let goal else { return false }
+        return balanceCents >= goal.targetCents
     }
 
     var settlementLines: [SettlementLine] {
@@ -103,7 +108,8 @@ struct WalletSnapshot: Hashable, Sendable {
     }
 }
 
-/// App service seam. Auth can talk to the production API; ledger stays in-memory in this slice.
+/// App service seam. Auth and paired-session ledger talk to the production API;
+/// `-FW*` launch flags keep the in-memory sample store.
 @MainActor
 protocol WalletServing: AnyObject {
     var snapshot: WalletSnapshot { get }
@@ -115,9 +121,10 @@ protocol WalletServing: AnyObject {
     func pairChild(code: String) async -> Bool
     func resetPairing()
     func refreshDevices() async
+    func refreshLedger() async
 
     func setOnline(_ online: Bool)
-    func recordEntry(direction: MoneyDirection, yuan: Int, reason: String, categoryID: String?) -> Bool
+    func recordEntry(direction: MoneyDirection, yuan: Int, reason: String, categoryID: String?) async -> Bool
     func toggleBoardCell(row: Int, day: Int)
     func confirmSettlement()
     func saveBoardItem(at index: Int?, name: String, goal: Int, rewardCents: Int)
@@ -138,15 +145,15 @@ enum SampleData {
     static let goal = Goal(title: "乐高赛车", targetCents: 40_000)
 
     static let transactions: [LedgerEntry] = [
-        .init(id: 9, reason: "本周基础零花钱", cents: 1000, direction: .income, date: "10月5日", categoryID: nil, balanceAfter: 8700, reversed: false),
-        .init(id: 8, reason: "帮忙搬水", cents: 200, direction: .income, date: "10月4日", categoryID: nil, balanceAfter: 7700, reversed: false),
-        .init(id: 7, reason: "买冰淇淋", cents: 1500, direction: .spend, date: "10月3日", categoryID: "food", balanceAfter: 7500, reversed: false),
-        .init(id: 6, reason: "更正：记错了", cents: 300, direction: .correction, date: "10月2日", categoryID: nil, balanceAfter: 9000, reversed: false),
-        .init(id: 5, reason: "乐高小车", cents: 1400, direction: .spend, date: "10月2日", categoryID: "toy", balanceAfter: 8700, reversed: true),
-        .init(id: 4, reason: "画笔", cents: 900, direction: .spend, date: "9月30日", categoryID: "book", balanceAfter: 10100, reversed: false),
-        .init(id: 3, reason: "上周基础零花钱", cents: 1500, direction: .income, date: "9月28日", categoryID: nil, balanceAfter: 11000, reversed: false),
-        .init(id: 2, reason: "送同学生日礼物", cents: 2000, direction: .spend, date: "9月26日", categoryID: "gift", balanceAfter: 9500, reversed: false),
-        .init(id: 1, reason: "期初余额", cents: 11500, direction: .income, date: "9月20日", categoryID: nil, balanceAfter: 11500, reversed: false),
+        .init(id: "9", reason: "本周基础零花钱", cents: 1000, direction: .income, date: "10月5日", categoryID: nil, balanceAfter: 8700, reversed: false),
+        .init(id: "8", reason: "帮忙搬水", cents: 200, direction: .income, date: "10月4日", categoryID: nil, balanceAfter: 7700, reversed: false),
+        .init(id: "7", reason: "买冰淇淋", cents: 1500, direction: .spend, date: "10月3日", categoryID: "food", balanceAfter: 7500, reversed: false),
+        .init(id: "6", reason: "更正：记错了", cents: 300, direction: .correction, date: "10月2日", categoryID: nil, balanceAfter: 9000, reversed: false, isCorrectable: false),
+        .init(id: "5", reason: "乐高小车", cents: 1400, direction: .spend, date: "10月2日", categoryID: "toy", balanceAfter: 8700, reversed: true, isCorrectable: false),
+        .init(id: "4", reason: "画笔", cents: 900, direction: .spend, date: "9月30日", categoryID: "book", balanceAfter: 10100, reversed: false),
+        .init(id: "3", reason: "上周基础零花钱", cents: 1500, direction: .income, date: "9月28日", categoryID: nil, balanceAfter: 11000, reversed: false),
+        .init(id: "2", reason: "送同学生日礼物", cents: 2000, direction: .spend, date: "9月26日", categoryID: "gift", balanceAfter: 9500, reversed: false),
+        .init(id: "1", reason: "期初余额", cents: 11500, direction: .income, date: "9月20日", categoryID: nil, balanceAfter: 11500, reversed: false),
     ]
 
     static let board: [BoardItem] = [

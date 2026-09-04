@@ -24,14 +24,16 @@ struct ChildHomeView: View {
                 note: "爸爸记下的每一笔都在下面，你可以自己数一遍。"
             )
 
-            FWCard(variant: .child, tone: .honey) {
-                GoalProgress(
-                    title: snap.goal.title,
-                    savedCents: snap.balanceCents,
-                    targetCents: snap.goal.targetCents,
-                    size: .child,
-                    reached: snap.goalReached
-                )
+            if let goal = snap.goal {
+                FWCard(variant: .child, tone: .honey) {
+                    GoalProgress(
+                        title: goal.title,
+                        savedCents: snap.balanceCents,
+                        targetCents: goal.targetCents,
+                        size: .child,
+                        reached: snap.goalReached
+                    )
+                }
             }
 
             FWCard(variant: .child) {
@@ -76,7 +78,7 @@ struct ChildBoardView: View {
         VStack(alignment: .leading, spacing: FWSpace.s7) {
             FWScreenTitle(text: "本周看板", size: .child)
             FWCard(variant: .child) {
-                WeekBoard(items: snap.board.map(\.asWeekItem), size: .child, weekLabel: SampleData.weekLabel)
+                WeekBoard(items: snap.board.map(\.asWeekItem), size: .child, weekLabel: snap.weekLabel)
             }
             FWCard(variant: .child, tone: .leaf) {
                 VStack(alignment: .leading, spacing: FWSpace.s4) {
@@ -163,7 +165,9 @@ struct ChildLedgerView: View {
         let snap = store.snapshot
         VStack(alignment: .leading, spacing: FWSpace.s6) {
             FWScreenTitle(text: "全部流水", size: .child)
-            CostHint(cents: 1500, goalTitle: snap.goal.title)
+            if let goal = snap.goal, let spend = snap.transactions.first(where: { $0.direction == .spend && !$0.reversed }) {
+                CostHint(cents: spend.cents, goalTitle: goal.title)
+            }
             FWCard(variant: .child) {
                 VStack(spacing: 0) {
                     ForEach(snap.transactions) { tx in
@@ -214,11 +218,18 @@ struct ChildWishesView: View {
                 EmptyState(
                     icon: .target,
                     title: "下一个心愿正在攒",
-                    bodyText: "\(snap.goal.title) · 已攒 ¥\(MoneyFormat.yuanNumber(snap.balanceCents)) / ¥\(MoneyFormat.yuanNumber(snap.goal.targetCents))",
+                    bodyText: wishGoalLine(snap),
                     size: .child
                 )
             }
         }
         .accessibilityIdentifier("screen.child.wishes")
+    }
+
+    private func wishGoalLine(_ snap: WalletSnapshot) -> String {
+        if let goal = snap.goal {
+            return "\(goal.title) · 已攒 ¥\(MoneyFormat.yuanNumber(snap.balanceCents)) / ¥\(MoneyFormat.yuanNumber(goal.targetCents))"
+        }
+        return "已攒 ¥\(MoneyFormat.yuanNumber(snap.balanceCents))"
     }
 }

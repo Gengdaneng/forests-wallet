@@ -201,7 +201,23 @@ struct SpendCategory: Identifiable, Hashable, Sendable {
     ]
 
     static func named(_ id: String) -> SpendCategory? {
-        all.first { $0.id == id }
+        switch id {
+        case "toys": return named("toy")
+        case "games": return named("game")
+        case "books": return named("book")
+        case "gifts": return named("gift")
+        default: return all.first { $0.id == id }
+        }
+    }
+
+    var apiSlug: String {
+        switch id {
+        case "toy": return "toys"
+        case "game": return "games"
+        case "book": return "books"
+        case "gift": return "gifts"
+        default: return id
+        }
     }
 }
 

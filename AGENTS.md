@@ -1,6 +1,6 @@
 # Agent notes
 
-Public Forrest's Wallet tree: native SwiftUI iPhone (parent) / iPad (child) app plus design-system reference. Auth talks to `https://wallet.gengdaneng.com`; ledger stays in-memory sample data.
+Public Forrest's Wallet tree: native SwiftUI iPhone (parent) / iPad (child) app plus design-system reference. Auth and paired-session ledger talk to `https://wallet.gengdaneng.com`; `-FW*` launch flags keep in-memory sample data.
 
 ## Scope
 

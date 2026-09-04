@@ -61,7 +61,7 @@ struct EntryFlowView: View {
             AmountField(value: amt, direction: direction, label: amountLabel)
             NumberPad(value: $amt)
             Spacer(minLength: FWSpace.s5)
-            FWButton(title: "确认记录", tone: .primary, block: true, disabled: amt.isEmpty) {
+            FWButton(title: "确认记录", tone: .primary, block: true, disabled: amt.isEmpty || store.isAuthBusy) {
                 step = .extra
             }
             .accessibilityIdentifier("entry.confirm")
@@ -79,14 +79,21 @@ struct EntryFlowView: View {
                 }
                 FWTextField(label: "为什么", value: $reason, placeholder: "买冰淇淋", optional: true, maxLength: 8)
                 if direction == .spend {
-                    CategoryPicker(value: $category)
+                    CategoryPicker(value: $category, categories: store.categories)
                 }
                 if direction == .correction {
                     StatusBanner(kind: .norealmoney, text: "原记录会保留，另外写入一笔冲正", size: .parent)
                 }
+                if let rejected = store.lastRecordRejectedReason {
+                    StatusBanner(
+                        kind: store.lastAuthErrorIsOffline ? .offline : .failed,
+                        text: rejected,
+                        size: .parent
+                    )
+                }
                 VStack(spacing: FWSpace.s3) {
-                    FWButton(title: "记下来", tone: .primary, block: true, action: commit)
-                    FWButton(title: "都跳过，直接记", tone: .quiet, block: true) {
+                    FWButton(title: "记下来", tone: .primary, block: true, disabled: store.isAuthBusy, action: commit)
+                    FWButton(title: "都跳过，直接记", tone: .quiet, block: true, disabled: store.isAuthBusy) {
                         reason = ""
                         category = nil
                         commit()
@@ -115,8 +122,8 @@ struct EntryFlowView: View {
                 .frame(maxWidth: .infinity)
 
                 StatusBanner(kind: .norealmoney, text: "已记录 · 没有任何真实资金移动", size: .parent)
-                if direction == .spend {
-                    CostHint(cents: cents, goalTitle: store.goal.title)
+                if direction == .spend, let goal = store.goal {
+                    CostHint(cents: cents, goalTitle: goal.title)
                 }
                 FWButton(title: "回首页", tone: .primary, block: true, action: onDone)
                     .accessibilityIdentifier("entry.home")
@@ -127,12 +134,16 @@ struct EntryFlowView: View {
     }
 
     private func commit() {
-        _ = store.recordEntry(
-            direction: direction,
-            yuan: Int(amt) ?? 0,
-            reason: reason,
-            categoryID: category
-        )
-        step = .done
+        Task {
+            let ok = await store.recordEntry(
+                direction: direction,
+                yuan: Int(amt) ?? 0,
+                reason: reason,
+                categoryID: category
+            )
+            if ok {
+                step = .done
+            }
+        }
     }
 }
