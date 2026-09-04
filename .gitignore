@@ -1,14 +1,12 @@
-node_modules/
-dist/
-.env
-.env.*
-!.env.example
 *.log
 .DS_Store
-coverage/
 tmp/
 .idea/
 .vscode/
+.env
+.env.*
+node_modules/
+dist/
 
 xcuserdata/
 DerivedData/

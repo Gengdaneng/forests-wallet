@@ -1,7 +1,0 @@
-#!/bin/sh
-set -eu
-if [ -n "${FW_RSYNC_LOG:-}" ]; then
-  echo "rsync $*" >>"$FW_RSYNC_LOG"
-fi
-echo "rsync stub was invoked; dry-run should not reach here" >&2
-exit 99
