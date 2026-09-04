@@ -28,5 +28,8 @@ struct RootView: View {
         }
         .fwScreenBackground()
         .tint(FWColor.spruce700)
+        .task(id: store.role) {
+            await store.refreshLedger()
+        }
     }
 }

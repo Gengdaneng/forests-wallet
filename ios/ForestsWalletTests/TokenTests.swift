@@ -76,30 +76,34 @@ final class SampleStoreTests: XCTestCase {
         XCTAssertFalse(store.hasSeenChildWelcome)
     }
 
-    func testParentWriteUpdatesBalanceAndChildCannotWrite() {
+    func testParentWriteUpdatesBalanceAndChildCannotWrite() async {
         let parent = SampleWalletStore(launchRole: .parent)
         let before = parent.balanceCents
-        XCTAssertTrue(parent.recordEntry(direction: .income, yuan: 5, reason: "帮忙搬水", categoryID: nil))
+        let added = await parent.recordEntry(direction: .income, yuan: 5, reason: "帮忙搬水", categoryID: nil)
+        XCTAssertTrue(added)
         XCTAssertEqual(parent.balanceCents, before + 500)
         XCTAssertEqual(parent.transactions.first?.reason, "帮忙搬水")
         XCTAssertEqual(parent.transactions.first?.direction, .income)
 
-        XCTAssertTrue(parent.recordEntry(direction: .spend, yuan: 15, reason: "买冰淇淋", categoryID: "food"))
+        let spent = await parent.recordEntry(direction: .spend, yuan: 15, reason: "买冰淇淋", categoryID: "food")
+        XCTAssertTrue(spent)
         XCTAssertEqual(parent.balanceCents, before + 500 - 1500)
         XCTAssertEqual(parent.transactions.first?.categoryID, "food")
 
         let child = SampleWalletStore(launchRole: .child)
         let childBefore = child.balanceCents
-        XCTAssertFalse(child.recordEntry(direction: .income, yuan: 10, reason: "不该成功", categoryID: nil))
+        let childWrite = await child.recordEntry(direction: .income, yuan: 10, reason: "不该成功", categoryID: nil)
+        XCTAssertFalse(childWrite)
         XCTAssertEqual(child.balanceCents, childBefore)
         XCTAssertEqual(child.lastRecordRejectedReason, "儿童端不能记账")
     }
 
-    func testOfflineRejectsWrites() {
+    func testOfflineRejectsWrites() async {
         let store = SampleWalletStore.fromLaunchArguments(["-FWRoleParent", "-FWOffline"])
         XCTAssertFalse(store.isOnline)
         let before = store.balanceCents
-        XCTAssertFalse(store.recordEntry(direction: .income, yuan: 2, reason: "x", categoryID: nil))
+        let rejected = await store.recordEntry(direction: .income, yuan: 2, reason: "x", categoryID: nil)
+        XCTAssertFalse(rejected)
         XCTAssertEqual(store.balanceCents, before)
         XCTAssertEqual(store.lastRecordRejectedReason, "没有写入任何记录 —— 记账必须联网")
     }

@@ -208,6 +208,7 @@ struct FWTextField: View {
 
 struct CategoryPicker: View {
     @Binding var value: String?
+    var categories: [SpendCategory] = SpendCategory.all
     var size: FWControlSize = .parent
     var label: String = "花在什么上"
 
@@ -222,7 +223,7 @@ struct CategoryPicker: View {
                     .foregroundStyle(FWColor.textFaint)
             }
             FlowLayout(spacing: FWSpace.s3) {
-                ForEach(SpendCategory.all) { cat in
+                ForEach(categories) { cat in
                     FWTag(category: cat, selected: value == cat.id, size: size) {
                         value = (value == cat.id) ? nil : cat.id
                     }

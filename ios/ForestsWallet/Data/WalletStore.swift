@@ -30,7 +30,9 @@ final class SampleWalletStore: WalletServing {
     private(set) var role: DeviceRole?
     var isOnline: Bool = true
     var balanceCents: Int = 8700
-    var goal: Goal = SampleData.goal
+    var goal: Goal? = SampleData.goal
+    var weekLabel: String? = SampleData.weekLabel
+    var categories: [SpendCategory] = SpendCategory.all
     var transactions: [LedgerEntry] = SampleData.transactions
     var board: [BoardItem] = SampleData.board
     var bonusCents: Int = 300
@@ -78,6 +80,7 @@ final class SampleWalletStore: WalletServing {
         self.childDeviceLabel = DeviceLabel.bounded(childDeviceLabel ?? DeviceLabel.childFallback, fallback: DeviceLabel.childFallback)
 
         if authClient != nil {
+            applyEmptyRemoteLedger()
             if let stored = try? self.credentials.load() {
                 applyRestoredCredentials(stored)
             } else {
@@ -105,6 +108,7 @@ final class SampleWalletStore: WalletServing {
             isOnline: isOnline,
             balanceCents: balanceCents,
             goal: goal,
+            weekLabel: weekLabel,
             transactions: transactions,
             board: board,
             bonusCents: bonusCents,
@@ -188,10 +192,31 @@ final class SampleWalletStore: WalletServing {
         pendingCelebrationCents = nil
         lastAuthErrorMessage = nil
         lastAuthErrorIsOffline = false
+        lastRecordRejectedReason = nil
+        if authClient != nil {
+            applyEmptyRemoteLedger()
+        }
     }
 
     func refreshDevices() async {
         await refreshDevicesLocked()
+    }
+
+    func refreshLedger() async {
+        guard let authClient, role != nil else { return }
+        guard let token = storedToken() else { return }
+        do {
+            let remote = try await authClient.snapshot(token: token)
+            applyRemoteSnapshot(remote)
+            isOnline = true
+            lastAuthErrorMessage = nil
+            lastAuthErrorIsOffline = false
+        } catch {
+            presentAuthError(error)
+            if let mapped = error as? AuthAPIError, mapped != .unauthorized {
+                isOnline = false
+            }
+        }
     }
 
     func setOnline(_ online: Bool) {
@@ -199,7 +224,7 @@ final class SampleWalletStore: WalletServing {
     }
 
     @discardableResult
-    func recordEntry(direction: MoneyDirection, yuan: Int, reason: String, categoryID: String?) -> Bool {
+    func recordEntry(direction: MoneyDirection, yuan: Int, reason: String, categoryID: String?) async -> Bool {
         guard role == .parent else {
             lastRecordRejectedReason = "儿童端不能记账"
             return false
@@ -213,33 +238,14 @@ final class SampleWalletStore: WalletServing {
             return false
         }
         lastRecordRejectedReason = nil
-        let cents = yuan * 100
-        let delta: Int
-        switch direction {
-        case .spend, .debt: delta = -cents
-        default: delta = cents
+        if authClient != nil {
+            return await recordRemoteEntry(direction: direction, yuan: yuan, reason: reason, categoryID: categoryID)
         }
-        balanceCents += delta
-        let nextID = (transactions.map(\.id).max() ?? 0) + 1
-        let trimmed = reason.trimmingCharacters(in: .whitespacesAndNewlines)
-        let entry = LedgerEntry(
-            id: nextID,
-            reason: trimmed.isEmpty ? "（没写事由）" : trimmed,
-            cents: cents,
-            direction: direction,
-            date: Self.todayLabel,
-            categoryID: direction == .spend ? (categoryID ?? "other") : nil,
-            balanceAfter: balanceCents,
-            reversed: false
-        )
-        transactions.insert(entry, at: 0)
-        if direction == .income {
-            pendingCelebrationCents = cents
-        }
-        return true
+        return applyLocalEntry(direction: direction, yuan: yuan, reason: reason, categoryID: categoryID)
     }
 
     func toggleBoardCell(row: Int, day: Int) {
+        guard authClient == nil else { return }
         guard role == .parent else { return }
         guard board.indices.contains(row), board[row].days.indices.contains(day) else { return }
         let current = board[row].days[day]
@@ -248,9 +254,10 @@ final class SampleWalletStore: WalletServing {
     }
 
     func confirmSettlement() {
+        guard authClient == nil else { return }
         guard role == .parent, !settledThisWeek else { return }
         let yuan = snapshot.settlementTotalCents / 100
-        let ok = recordEntry(direction: .income, yuan: max(yuan, 0) == 0 ? 0 : yuan, reason: "本周基础零花钱", categoryID: nil)
+        let ok = applyLocalEntry(direction: .income, yuan: max(yuan, 0) == 0 ? 0 : yuan, reason: "本周基础零花钱", categoryID: nil)
         if ok || yuan == 0 {
             settledThisWeek = true
         }
@@ -260,6 +267,7 @@ final class SampleWalletStore: WalletServing {
     }
 
     func saveBoardItem(at index: Int?, name: String, goal: Int, rewardCents: Int) {
+        guard authClient == nil else { return }
         guard role == .parent else { return }
         let trimmed = String(name.trimmingCharacters(in: .whitespacesAndNewlines).prefix(6))
         guard !trimmed.isEmpty, goal > 0, goal <= 7, rewardCents >= 0 else { return }
@@ -282,6 +290,7 @@ final class SampleWalletStore: WalletServing {
     }
 
     func deleteBoardItem(at index: Int) {
+        guard authClient == nil else { return }
         guard role == .parent, board.indices.contains(index) else { return }
         let name = board[index].name
         board.remove(at: index)
@@ -292,6 +301,7 @@ final class SampleWalletStore: WalletServing {
     }
 
     func setBonusCents(_ cents: Int) {
+        guard authClient == nil else { return }
         guard role == .parent, cents >= 0 else { return }
         bonusCents = cents
     }
@@ -326,6 +336,182 @@ final class SampleWalletStore: WalletServing {
 
     func acknowledgeChildWelcome() {
         hasSeenChildWelcome = true
+    }
+
+    @discardableResult
+    private func applyLocalEntry(direction: MoneyDirection, yuan: Int, reason: String, categoryID: String?) -> Bool {
+        guard yuan > 0 else { return false }
+        let cents = yuan * 100
+        let delta: Int
+        switch direction {
+        case .spend, .debt: delta = -cents
+        default: delta = cents
+        }
+        balanceCents += delta
+        let nextID = String((transactions.compactMap { Int($0.id) }.max() ?? 0) + 1)
+        let trimmed = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+        let entry = LedgerEntry(
+            id: nextID,
+            reason: trimmed.isEmpty ? "（没写事由）" : trimmed,
+            cents: cents,
+            direction: direction,
+            date: Self.todayLabel,
+            categoryID: direction == .spend ? (categoryID ?? "other") : nil,
+            balanceAfter: balanceCents,
+            reversed: false,
+            isCorrectable: direction != .correction
+        )
+        transactions.insert(entry, at: 0)
+        if direction == .income {
+            pendingCelebrationCents = cents
+        }
+        return true
+    }
+
+    private func recordRemoteEntry(
+        direction: MoneyDirection,
+        yuan: Int,
+        reason: String,
+        categoryID: String?
+    ) async -> Bool {
+        guard beginWriteWork() else { return false }
+        defer { isAuthBusy = false }
+        guard let authClient, let token = storedToken() else {
+            present(.unauthorized)
+            lastRecordRejectedReason = AuthAPIError.unauthorized.userMessage
+            return false
+        }
+        let key = UUID().uuidString
+        let trimmed = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+        let memo = trimmed.isEmpty ? nil : trimmed
+        do {
+            if direction == .correction {
+                guard let target = transactions.first(where: \.isCorrectable) else {
+                    lastRecordRejectedReason = AuthAPIError.invalidRequest.userMessage
+                    return false
+                }
+                let request = CorrectionRequest(
+                    amountFen: LedgerMapping.signedFenForCorrection(target: target, yuan: yuan),
+                    occurredOn: target.occurredOnISO ?? LedgerDate.todayISO(),
+                    memo: memo,
+                    category: LedgerMapping.apiCategory(fromUI: categoryID ?? target.categoryID)
+                )
+                let response = try await authClient.correctTransaction(
+                    token: token,
+                    id: target.id,
+                    idempotencyKey: key,
+                    request: request
+                )
+                applyCorrection(response)
+            } else {
+                guard let kind = LedgerMapping.writeKind(for: direction) else {
+                    lastRecordRejectedReason = AuthAPIError.invalidRequest.userMessage
+                    return false
+                }
+                let request = CreateTransactionRequest(
+                    kind: kind,
+                    amountFen: LedgerMapping.signedFen(direction: direction, yuan: yuan),
+                    occurredOn: LedgerDate.todayISO(),
+                    memo: memo,
+                    category: direction == .spend ? (LedgerMapping.apiCategory(fromUI: categoryID) ?? "other") : nil
+                )
+                let response = try await authClient.createTransaction(
+                    token: token,
+                    idempotencyKey: key,
+                    request: request
+                )
+                applyCreated(response)
+                if direction == .income {
+                    pendingCelebrationCents = yuan * 100
+                }
+            }
+            isOnline = true
+            await refreshLedger()
+            return true
+        } catch {
+            presentWriteError(error)
+            return false
+        }
+    }
+
+    private func applyCreated(_ response: CreateTransactionResponse) {
+        balanceCents = response.balanceFen
+        var rows = LedgerMapping.entries(from: [response.transaction])
+        if !rows.isEmpty {
+            rows[0].balanceAfter = response.balanceFen
+            transactions.insert(rows[0], at: 0)
+        }
+    }
+
+    private func applyCorrection(_ response: CorrectionResponse) {
+        balanceCents = response.balanceFen
+        if let index = transactions.firstIndex(where: { $0.id == response.original.id }) {
+            transactions[index].reversed = true
+            transactions[index].isCorrectable = false
+        }
+        let extras = LedgerMapping.entries(from: [response.replacement, response.reverse])
+        transactions.insert(contentsOf: extras, at: 0)
+    }
+
+    private func applyEmptyRemoteLedger() {
+        balanceCents = 0
+        goal = nil
+        weekLabel = nil
+        categories = SpendCategory.all
+        transactions = []
+        board = []
+        bonusCents = 0
+        adhoc = []
+        changes = []
+        wishes = []
+        settledThisWeek = false
+        pendingCelebrationCents = nil
+    }
+
+    private func applyRemoteSnapshot(_ remote: RemoteSnapshot) {
+        balanceCents = remote.balanceFen
+        goal = LedgerMapping.goal(from: remote.goal)
+        weekLabel = LedgerMapping.weekLabel(from: remote.week)
+        categories = LedgerMapping.categories(from: remote.categories)
+        transactions = LedgerMapping.entries(from: remote.recentTransactions)
+        board = LedgerMapping.board(
+            items: remote.checkinItems,
+            checkins: remote.checkins,
+            week: remote.week,
+            todayISO: LedgerDate.todayISO()
+        )
+        changes = LedgerMapping.changes(from: remote.ruleChanges)
+        adhoc = []
+        wishes = []
+    }
+
+    private func beginWriteWork() -> Bool {
+        guard !isAuthBusy else { return false }
+        isAuthBusy = true
+        lastRecordRejectedReason = nil
+        lastAuthErrorMessage = nil
+        lastAuthErrorIsOffline = false
+        return true
+    }
+
+    private func presentWriteError(_ error: Error) {
+        let mapped = (error as? AuthAPIError) ?? .serverFailure
+        lastAuthErrorIsOffline = mapped.isOffline
+        switch mapped {
+        case .unauthorized:
+            present(mapped)
+            lastRecordRejectedReason = mapped.userMessage
+        case .offline:
+            isOnline = false
+            lastAuthErrorMessage = mapped.userMessage
+            lastRecordRejectedReason = "没有写入任何记录 —— 记账必须联网"
+        case .forbidden:
+            lastAuthErrorMessage = mapped.userMessage
+            lastRecordRejectedReason = "儿童端不能记账"
+        default:
+            lastAuthErrorMessage = mapped.userMessage
+            lastRecordRejectedReason = mapped.userMessage
+        }
     }
 
     private func applyLocalParent() {

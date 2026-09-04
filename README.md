@@ -7,7 +7,7 @@ This repository is the open-source native iPhone/iPad app and its design-system 
 
 ## Current scope
 
-One universal SwiftUI target. Authentication talks to `https://wallet.gengdaneng.com`; ledger state is still local in-memory sample data:
+One universal SwiftUI target. Authentication and paired-session ledger traffic talk to `https://wallet.gengdaneng.com`. Launch arguments keep in-memory sample data for tests and previews:
 
 - **iPhone** — parent surface (register, record, board, settle, history, settings)
 - **iPad** — Forrest's surface (read-only home, board, rules, wishes)

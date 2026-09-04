@@ -6,8 +6,10 @@ enum AuthAPIError: Error, Equatable, Sendable {
     case parentAlreadyRegistered
     case invalidOrExpiredCode
     case unauthorized
+    case forbidden
     case invalidRequest
     case notFound
+    case conflict
     case rateLimited
     case offline
     case serverFailure
@@ -22,7 +24,9 @@ enum AuthAPIError: Error, Equatable, Sendable {
             "数字不对，再问爸爸一次"
         case .unauthorized:
             "这台设备已失效，请重新注册"
-        case .invalidRequest:
+        case .forbidden:
+            "儿童端不能记账"
+        case .invalidRequest, .conflict:
             "请检查后再试"
         case .notFound:
             "找不到这台设备"
@@ -222,6 +226,57 @@ struct AuthClient: Sendable {
         )
     }
 
+    func snapshot(token: String) async throws -> RemoteSnapshot {
+        try await send(
+            method: "GET",
+            path: "/v1/snapshot",
+            body: Optional<EmptyJSON>.none,
+            token: token,
+            mapError: { _, _ in nil }
+        )
+    }
+
+    func createTransaction(
+        token: String,
+        idempotencyKey: String,
+        request: CreateTransactionRequest
+    ) async throws -> CreateTransactionResponse {
+        try await send(
+            method: "POST",
+            path: "/v1/transactions",
+            body: request,
+            token: token,
+            headers: ["Idempotency-Key": idempotencyKey],
+            mapError: Self.mapLedgerWriteError
+        )
+    }
+
+    func correctTransaction(
+        token: String,
+        id: String,
+        idempotencyKey: String,
+        request: CorrectionRequest
+    ) async throws -> CorrectionResponse {
+        let encodedID = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id
+        return try await send(
+            method: "POST",
+            path: "/v1/transactions/\(encodedID)/correct",
+            body: request,
+            token: token,
+            headers: ["Idempotency-Key": idempotencyKey],
+            mapError: Self.mapLedgerWriteError
+        )
+    }
+
+    private static func mapLedgerWriteError(_ status: Int, _ code: String?) -> AuthAPIError? {
+        switch status {
+        case 403: return .forbidden
+        case 409: return .conflict
+        case 422: return .invalidRequest
+        default: return nil
+        }
+    }
+
     private struct EmptyJSON: Encodable {}
     private struct RevokeResponse: Decodable {
         var ok: Bool?
@@ -236,9 +291,10 @@ struct AuthClient: Sendable {
         path: String,
         body: Body?,
         token: String?,
+        headers: [String: String] = [:],
         mapError: (Int, String?) -> AuthAPIError?
     ) async throws -> Response {
-        let request = try makeRequest(method: method, path: path, body: body, token: token)
+        let request = try makeRequest(method: method, path: path, body: body, token: token, headers: headers)
         let data: Data
         let response: URLResponse
         do {
@@ -278,7 +334,8 @@ struct AuthClient: Sendable {
         method: String,
         path: String,
         body: Body?,
-        token: String?
+        token: String?,
+        headers: [String: String] = [:]
     ) throws -> URLRequest {
         guard var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false) else {
             throw AuthAPIError.rejectedBaseURL
@@ -292,6 +349,9 @@ struct AuthClient: Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if let token {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        for (header, value) in headers {
+            request.setValue(value, forHTTPHeaderField: header)
         }
         if method != "GET" {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -321,14 +381,16 @@ struct AuthClient: Sendable {
 
     private func mapStatus(_ status: Int) -> AuthAPIError {
         switch status {
-        case 400, 413, 415:
+        case 400, 413, 415, 422:
             return .invalidRequest
-        case 401, 403:
+        case 401:
             return .unauthorized
+        case 403:
+            return .forbidden
         case 404:
             return .notFound
         case 409:
-            return .parentAlreadyRegistered
+            return .conflict
         case 429:
             return .rateLimited
         default:
