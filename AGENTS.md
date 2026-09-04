@@ -1,10 +1,10 @@
 # Agent notes
 
-Public Forrest's Wallet tree: native SwiftUI iPhone (parent) / iPad (child) app plus design-system reference. Local in-memory sample data only.
+Public Forrest's Wallet tree: native SwiftUI iPhone (parent) / iPad (child) app plus design-system reference. Auth talks to `https://wallet.gengdaneng.com`; ledger stays in-memory sample data.
 
 ## Scope
 
-- `ios/` — universal target, no networking. See `ios/README.md` for toolchain, launch arguments, and `xcodebuild` commands.
+- `ios/` — universal target. See `ios/README.md` for auth/sample mode, Keychain tokens, launch arguments, and `xcodebuild` commands.
 - `DesignSystem/Reference/` — design input. Do not run bundled JavaScript.
 - Production backend is private. Do not add a server, database, or hosting operations here.
 

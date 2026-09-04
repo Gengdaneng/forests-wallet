@@ -7,12 +7,14 @@ This repository is the open-source native iPhone/iPad app and its design-system 
 
 ## Current scope
 
-Local in-memory sample data. One universal SwiftUI target, no networking:
+One universal SwiftUI target. Authentication talks to `https://wallet.gengdaneng.com`; ledger state is still local in-memory sample data:
 
 - **iPhone** — parent surface (register, record, board, settle, history, settings)
 - **iPad** — Forrest's surface (read-only home, board, rules, wishes)
 
-The first launch is unpaired. On iPhone, register as parent. On iPad, enter pairing code `482917` (deterministic sample).
+The first launch is unpaired unless a Keychain session already exists. On iPhone, register as parent (an operator must open the bootstrap window first). On iPad, enter the six-digit pairing code from the parent device.
+
+Tokens live in the Keychain only. Launch arguments (`-FWRoleParent`, `-FWRoleChild`, `-FWUnpaired`, `-FWOffline`) keep deterministic sample mode for tests and do not require a live server. Details: [`ios/README.md`](ios/README.md).
 
 The production backend is maintained privately and is not in this tree.
 
@@ -29,7 +31,7 @@ open ios/ForestsWallet.xcodeproj
 
 Pick an iPhone simulator for the parent surface, or an iPad simulator for Forrest's surface.
 
-Launch arguments (`-FWRoleParent`, `-FWRoleChild`, `-FWUnpaired`, `-FWOffline`) and screen layout are documented in [`ios/README.md`](ios/README.md).
+Launch arguments and screen layout are documented in [`ios/README.md`](ios/README.md).
 
 ## Build and test
 
@@ -48,7 +50,7 @@ xcodebuild -project ios/ForestsWallet.xcodeproj -scheme ForestsWallet -destinati
 
 ## Layout
 
-- `ios/` — native SwiftUI app, sample store, unit and UI tests
+- `ios/` — native SwiftUI app, sample store, auth client, unit and UI tests
 - `DesignSystem/` — visual and interaction authority (extracted reference source)
 
 ## Design system

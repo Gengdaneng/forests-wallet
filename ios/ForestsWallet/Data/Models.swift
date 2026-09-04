@@ -1,6 +1,6 @@
 import Foundation
 
-enum DeviceRole: String, Sendable {
+enum DeviceRole: String, Codable, Sendable {
     case parent
     case child
 }
@@ -103,16 +103,18 @@ struct WalletSnapshot: Hashable, Sendable {
     }
 }
 
-/// Small seam for a future backend. This slice uses in-memory sample state only.
+/// App service seam. Auth can talk to the production API; ledger stays in-memory in this slice.
 @MainActor
 protocol WalletServing: AnyObject {
     var snapshot: WalletSnapshot { get }
     var lastRecordRejectedReason: String? { get }
+    var lastAuthErrorMessage: String? { get }
 
-    func bootstrapParent()
-    func generatePairingCode() -> String
-    func pairChild(code: String) -> Bool
+    func bootstrapParent() async
+    func generatePairingCode() async -> String?
+    func pairChild(code: String) async -> Bool
     func resetPairing()
+    func refreshDevices() async
 
     func setOnline(_ online: Bool)
     func recordEntry(direction: MoneyDirection, yuan: Int, reason: String, categoryID: String?) -> Bool
@@ -123,7 +125,7 @@ protocol WalletServing: AnyObject {
     func setBonusCents(_ cents: Int)
     func setSundayReminder(_ on: Bool)
     func setPreviewNeedsPIN(_ on: Bool)
-    func revokeDevice(id: String)
+    func revokeDevice(id: String) async
     func dismissCelebration()
 }
 
