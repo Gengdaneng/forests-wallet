@@ -2,7 +2,7 @@ import SwiftUI
 
 @main
 struct ForestsWalletApp: App {
-    @State private var store = SampleWalletStore.fromLaunchArguments()
+    @State private var store = SampleWalletStore.makeLaunchStore()
 
     var body: some Scene {
         WindowGroup {

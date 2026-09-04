@@ -64,12 +64,14 @@ final class SampleStoreTests: XCTestCase {
         XCTAssertTrue(store.hasSeenChildWelcome)
     }
 
-    func testPairingAcceptsSampleCode() {
+    func testPairingAcceptsSampleCode() async {
         let store = SampleWalletStore(launchRole: .unpaired)
         XCTAssertNil(store.role)
-        XCTAssertFalse(store.pairChild(code: "000000"))
+        let rejected = await store.pairChild(code: "000000")
+        XCTAssertFalse(rejected)
         XCTAssertNil(store.role)
-        XCTAssertTrue(store.pairChild(code: SampleData.pairingCode))
+        let accepted = await store.pairChild(code: SampleData.pairingCode)
+        XCTAssertTrue(accepted)
         XCTAssertEqual(store.role, .child)
         XCTAssertFalse(store.hasSeenChildWelcome)
     }

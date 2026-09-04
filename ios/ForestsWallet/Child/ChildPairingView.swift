@@ -28,7 +28,11 @@ struct ChildPairingView: View {
                 NumberPad(value: $code, maxDigits: 6)
 
                 if failed {
-                    StatusBanner(kind: .failed, text: "数字不对，再问爸爸一次", size: .child)
+                    StatusBanner(
+                        kind: store.lastAuthErrorIsOffline ? .offline : .failed,
+                        text: store.lastAuthErrorMessage ?? "数字不对，再问爸爸一次",
+                        size: .child
+                    )
                 }
 
                 FWButton(
@@ -36,12 +40,11 @@ struct ChildPairingView: View {
                     tone: .primary,
                     size: .child,
                     block: true,
-                    disabled: code.count < 6
+                    disabled: code.count < 6 || store.isAuthBusy
                 ) {
-                    if store.pairChild(code: code) {
-                        failed = false
-                    } else {
-                        failed = true
+                    Task {
+                        let ok = await store.pairChild(code: code)
+                        failed = !ok
                     }
                 }
                 .accessibilityIdentifier("child.pair.submit")

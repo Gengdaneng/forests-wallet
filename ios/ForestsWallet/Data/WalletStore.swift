@@ -5,6 +5,25 @@ enum LaunchRole: String {
     case unpaired, parent, child
 }
 
+enum DeviceLabel {
+    static let parentFallback = "爸爸的 iPhone"
+    static let childFallback = "Forrest 的 iPad"
+
+    static func bounded(_ raw: String, fallback: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let base = trimmed.isEmpty ? fallback : trimmed
+        if base.utf16.count <= 64 { return base }
+        var truncated = ""
+        truncated.reserveCapacity(64)
+        for character in base {
+            let next = truncated + String(character)
+            if next.utf16.count > 64 { break }
+            truncated = next
+        }
+        return truncated.isEmpty ? fallback : truncated
+    }
+}
+
 @Observable
 @MainActor
 final class SampleWalletStore: WalletServing {
@@ -19,24 +38,63 @@ final class SampleWalletStore: WalletServing {
     var changes: [RuleChange] = SampleData.changes
     var wishes: [Wish] = SampleData.wishes
     var pairingCode: String?
+    var pairingExpiresInSeconds: Int?
     var sundayReminder: Bool = true
     var previewNeedsPIN: Bool = true
     var settledThisWeek: Bool = false
     var devices: [PairedDevice] = []
     var pendingCelebrationCents: Int?
     var lastRecordRejectedReason: String?
-
+    var lastAuthErrorMessage: String?
+    var lastAuthErrorIsOffline: Bool = false
+    var isAuthBusy: Bool = false
     var hasSeenChildWelcome: Bool = false
 
-    init(launchRole: LaunchRole = .unpaired) {
+    private let authClient: AuthClient?
+    private let credentials: any CredentialStoring
+    private let deviceLabel: String
+    private let childDeviceLabel: String
+
+    var isRemoteAuth: Bool { authClient != nil }
+
+    var pairingHint: String {
+        if let seconds = pairingExpiresInSeconds {
+            let minutes = max(1, Int((Double(seconds) / 60.0).rounded()))
+            return "6 位数字 · \(minutes) 分钟过期 · 用一次即作废"
+        }
+        return "6 位数字 · 10 分钟过期 · 用一次即作废"
+    }
+
+    init(
+        launchRole: LaunchRole = .unpaired,
+        authClient: AuthClient? = nil,
+        credentials: (any CredentialStoring)? = nil,
+        deviceLabel: String? = nil,
+        childDeviceLabel: String? = nil
+    ) {
+        self.authClient = authClient
+        self.credentials = credentials ?? InMemoryCredentialStore()
+        self.deviceLabel = DeviceLabel.bounded(deviceLabel ?? UIDevice.current.name, fallback: DeviceLabel.parentFallback)
+        self.childDeviceLabel = DeviceLabel.bounded(childDeviceLabel ?? DeviceLabel.childFallback, fallback: DeviceLabel.childFallback)
+
+        if authClient != nil {
+            if let stored = try? self.credentials.load() {
+                applyRestoredCredentials(stored)
+            } else {
+                role = nil
+                devices = []
+            }
+            return
+        }
+
         switch launchRole {
         case .unpaired:
             role = nil
             devices = []
         case .parent:
-            bootstrapParent()
+            applyLocalParent()
         case .child:
-            _ = pairChild(code: SampleData.pairingCode)
+            applyLocalChild(code: SampleData.pairingCode)
             hasSeenChildWelcome = true
         }
     }
@@ -62,40 +120,78 @@ final class SampleWalletStore: WalletServing {
         )
     }
 
-    func bootstrapParent() {
-        role = .parent
-        devices = [
-            PairedDevice(id: "iphone", name: "爸爸的 iPhone", roleLabel: "家长 · 可写入（本机）", glyph: .smartphone, isThisDevice: true),
-        ]
-        pairingCode = nil
-        lastRecordRejectedReason = nil
+    func bootstrapParent() async {
+        guard beginAuthWork() else { return }
+        defer { isAuthBusy = false }
+        guard let authClient else {
+            applyLocalParent()
+            return
+        }
+        do {
+            let session = try await authClient.bootstrap(deviceLabel: deviceLabel)
+            try persist(session)
+            applyRemoteSession(session, thisDeviceName: deviceLabel)
+            await refreshDevicesLocked()
+        } catch {
+            presentAuthError(error)
+        }
     }
 
-    func generatePairingCode() -> String {
-        pairingCode = SampleData.pairingCode
-        return SampleData.pairingCode
+    func generatePairingCode() async -> String? {
+        guard beginAuthWork() else { return nil }
+        defer { isAuthBusy = false }
+        guard let authClient else {
+            pairingCode = SampleData.pairingCode
+            pairingExpiresInSeconds = 600
+            return SampleData.pairingCode
+        }
+        guard let token = storedToken() else {
+            present(.unauthorized)
+            return nil
+        }
+        do {
+            let issued = try await authClient.createPairing(token: token, deviceLabel: childDeviceLabel)
+            pairingCode = issued.code
+            pairingExpiresInSeconds = issued.expiresInSeconds
+            return issued.code
+        } catch {
+            presentAuthError(error)
+            return nil
+        }
     }
 
-    func pairChild(code: String) -> Bool {
+    func pairChild(code: String) async -> Bool {
+        guard beginAuthWork() else { return false }
+        defer { isAuthBusy = false }
         let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines)
-        let accepted = trimmed == SampleData.pairingCode || (pairingCode != nil && trimmed == pairingCode)
-        guard accepted else { return false }
-        role = .child
-        pairingCode = nil
-        hasSeenChildWelcome = false
-        devices = [
-            PairedDevice(id: "ipad", name: "Forrest 的 iPad", roleLabel: "儿童 · 只读（本机）", glyph: .tablet, isThisDevice: true),
-            PairedDevice(id: "iphone", name: "爸爸的 iPhone", roleLabel: "家长 · 可写入", glyph: .smartphone, isThisDevice: false),
-        ]
-        return true
+        guard let authClient else {
+            return applyLocalChild(code: trimmed)
+        }
+        do {
+            let session = try await authClient.claimPairing(code: trimmed)
+            try persist(session)
+            applyRemoteSession(session, thisDeviceName: childDeviceLabel)
+            return true
+        } catch {
+            presentAuthError(error)
+            return false
+        }
     }
 
     func resetPairing() {
+        try? credentials.clear()
         role = nil
         pairingCode = nil
+        pairingExpiresInSeconds = nil
         hasSeenChildWelcome = false
         devices = []
         pendingCelebrationCents = nil
+        lastAuthErrorMessage = nil
+        lastAuthErrorIsOffline = false
+    }
+
+    func refreshDevices() async {
+        await refreshDevicesLocked()
     }
 
     func setOnline(_ online: Bool) {
@@ -203,9 +299,25 @@ final class SampleWalletStore: WalletServing {
     func setSundayReminder(_ on: Bool) { sundayReminder = on }
     func setPreviewNeedsPIN(_ on: Bool) { previewNeedsPIN = on }
 
-    func revokeDevice(id: String) {
+    func revokeDevice(id: String) async {
+        guard beginAuthWork() else { return }
+        defer { isAuthBusy = false }
         guard role == .parent else { return }
-        devices.removeAll { $0.id == id && !$0.isThisDevice }
+        guard let authClient else {
+            devices.removeAll { $0.id == id && !$0.isThisDevice }
+            return
+        }
+        guard let token = storedToken() else {
+            present(.unauthorized)
+            return
+        }
+        do {
+            try await authClient.revokeDevice(token: token, id: id)
+            devices.removeAll { $0.id == id && !$0.isThisDevice }
+            await refreshDevicesLocked()
+        } catch {
+            presentAuthError(error)
+        }
     }
 
     func dismissCelebration() {
@@ -214,6 +326,175 @@ final class SampleWalletStore: WalletServing {
 
     func acknowledgeChildWelcome() {
         hasSeenChildWelcome = true
+    }
+
+    private func applyLocalParent() {
+        role = .parent
+        devices = [
+            PairedDevice(id: "iphone", name: DeviceLabel.parentFallback, roleLabel: "家长 · 可写入（本机）", glyph: .smartphone, isThisDevice: true),
+        ]
+        pairingCode = nil
+        pairingExpiresInSeconds = nil
+        lastRecordRejectedReason = nil
+        lastAuthErrorMessage = nil
+        lastAuthErrorIsOffline = false
+    }
+
+    @discardableResult
+    private func applyLocalChild(code: String) -> Bool {
+        let accepted = code == SampleData.pairingCode || (pairingCode != nil && code == pairingCode)
+        guard accepted else {
+            lastAuthErrorMessage = AuthAPIError.invalidOrExpiredCode.userMessage
+            lastAuthErrorIsOffline = false
+            return false
+        }
+        role = .child
+        pairingCode = nil
+        pairingExpiresInSeconds = nil
+        hasSeenChildWelcome = false
+        lastAuthErrorMessage = nil
+        lastAuthErrorIsOffline = false
+        devices = [
+            PairedDevice(id: "ipad", name: DeviceLabel.childFallback, roleLabel: "儿童 · 只读（本机）", glyph: .tablet, isThisDevice: true),
+            PairedDevice(id: "iphone", name: DeviceLabel.parentFallback, roleLabel: "家长 · 可写入", glyph: .smartphone, isThisDevice: false),
+        ]
+        return true
+    }
+
+    private func applyRestoredCredentials(_ stored: DeviceCredentials) {
+        role = stored.role
+        pairingCode = nil
+        pairingExpiresInSeconds = nil
+        lastAuthErrorMessage = nil
+        lastAuthErrorIsOffline = false
+        if stored.role == .parent {
+            hasSeenChildWelcome = false
+            devices = [
+                PairedDevice(
+                    id: stored.deviceID,
+                    name: deviceLabel,
+                    roleLabel: "家长 · 可写入（本机）",
+                    glyph: .smartphone,
+                    isThisDevice: true
+                ),
+            ]
+        } else {
+            hasSeenChildWelcome = true
+            devices = [
+                PairedDevice(
+                    id: stored.deviceID,
+                    name: childDeviceLabel,
+                    roleLabel: "儿童 · 只读（本机）",
+                    glyph: .tablet,
+                    isThisDevice: true
+                ),
+            ]
+        }
+    }
+
+    private func applyRemoteSession(_ session: AuthSessionResponse, thisDeviceName: String) {
+        role = session.role
+        pairingCode = nil
+        pairingExpiresInSeconds = nil
+        lastAuthErrorMessage = nil
+        lastAuthErrorIsOffline = false
+        lastRecordRejectedReason = nil
+        if session.role == .parent {
+            hasSeenChildWelcome = false
+            devices = [
+                PairedDevice(
+                    id: session.deviceID,
+                    name: thisDeviceName,
+                    roleLabel: "家长 · 可写入（本机）",
+                    glyph: .smartphone,
+                    isThisDevice: true
+                ),
+            ]
+        } else {
+            hasSeenChildWelcome = false
+            devices = [
+                PairedDevice(
+                    id: session.deviceID,
+                    name: thisDeviceName,
+                    roleLabel: "儿童 · 只读（本机）",
+                    glyph: .tablet,
+                    isThisDevice: true
+                ),
+            ]
+        }
+    }
+
+    private func persist(_ session: AuthSessionResponse) throws {
+        try credentials.save(
+            DeviceCredentials(token: session.token, deviceID: session.deviceID, role: session.role)
+        )
+    }
+
+    private func storedToken() -> String? {
+        (try? credentials.load())?.token
+    }
+
+    private func storedDeviceID() -> String? {
+        (try? credentials.load())?.deviceID
+    }
+
+    private func beginAuthWork() -> Bool {
+        guard !isAuthBusy else { return false }
+        isAuthBusy = true
+        lastAuthErrorMessage = nil
+        lastAuthErrorIsOffline = false
+        return true
+    }
+
+    private func presentAuthError(_ error: Error) {
+        let mapped = (error as? AuthAPIError) ?? .serverFailure
+        present(mapped)
+    }
+
+    private func present(_ error: AuthAPIError) {
+        lastAuthErrorMessage = error.userMessage
+        lastAuthErrorIsOffline = error.isOffline
+        if error == .unauthorized {
+            try? credentials.clear()
+            role = nil
+            pairingCode = nil
+            pairingExpiresInSeconds = nil
+            hasSeenChildWelcome = false
+            devices = []
+        }
+    }
+
+    private func refreshDevicesLocked() async {
+        guard let authClient, role == .parent else { return }
+        guard let token = storedToken() else { return }
+        do {
+            let remote = try await authClient.listDevices(token: token)
+            let thisID = storedDeviceID()
+            devices = remote.compactMap { Self.mapDevice($0, thisDeviceID: thisID) }
+        } catch {
+            presentAuthError(error)
+        }
+    }
+
+    private static func mapDevice(_ remote: RemoteDevice, thisDeviceID: String?) -> PairedDevice? {
+        guard remote.isActive else { return nil }
+        let isThis = remote.id == thisDeviceID
+        let isParent = remote.role == .parent
+        let roleLabel: String
+        if isParent {
+            roleLabel = isThis ? "家长 · 可写入（本机）" : "家长 · 可写入"
+        } else {
+            roleLabel = isThis ? "儿童 · 只读（本机）" : "儿童 · 只读"
+        }
+        let fallback = isParent ? DeviceLabel.parentFallback : DeviceLabel.childFallback
+        let name = remote.label.trimmingCharacters(in: .whitespacesAndNewlines)
+        return PairedDevice(
+            id: remote.id,
+            name: name.isEmpty ? fallback : name,
+            roleLabel: roleLabel,
+            glyph: isParent ? .smartphone : .tablet,
+            isThisDevice: isThis
+        )
     }
 
     private static var todayLabel: String {
@@ -239,5 +520,23 @@ extension SampleWalletStore {
             store.isOnline = false
         }
         return store
+    }
+
+    static func live(
+        client: AuthClient = .production(),
+        credentials: any CredentialStoring = KeychainCredentialStore()
+    ) -> SampleWalletStore {
+        SampleWalletStore(launchRole: .unpaired, authClient: client, credentials: credentials)
+    }
+
+    static func makeLaunchStore(_ arguments: [String] = ProcessInfo.processInfo.arguments) -> SampleWalletStore {
+        if arguments.contains(where: { $0.hasPrefix("-FW") }) {
+            return fromLaunchArguments(arguments)
+        }
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+            || ProcessInfo.processInfo.environment["XCTestBundlePath"] != nil {
+            return SampleWalletStore(launchRole: .unpaired)
+        }
+        return live()
     }
 }

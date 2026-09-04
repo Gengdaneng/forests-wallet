@@ -35,8 +35,23 @@ struct ParentBootstrapView: View {
 
                 StatusBanner(kind: .norealmoney, size: .parent)
 
-                FWButton(title: "注册为家长", tone: .primary, size: .parent, icon: .shieldCheck, block: true) {
-                    store.bootstrapParent()
+                if let message = store.lastAuthErrorMessage {
+                    StatusBanner(
+                        kind: store.lastAuthErrorIsOffline ? .offline : .failed,
+                        text: message,
+                        size: .parent
+                    )
+                }
+
+                FWButton(
+                    title: "注册为家长",
+                    tone: .primary,
+                    size: .parent,
+                    icon: .shieldCheck,
+                    block: true,
+                    disabled: store.isAuthBusy
+                ) {
+                    Task { await store.bootstrapParent() }
                 }
                 .accessibilityIdentifier("bootstrap.register")
             }

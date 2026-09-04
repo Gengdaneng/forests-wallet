@@ -33,8 +33,8 @@ struct ParentSettingsView: View {
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             if !device.isThisDevice {
-                                FWButton(title: "撤销", tone: .quiet, size: .small) {
-                                    store.revokeDevice(id: device.id)
+                                FWButton(title: "撤销", tone: .quiet, size: .small, disabled: store.isAuthBusy) {
+                                    Task { await store.revokeDevice(id: device.id) }
                                 }
                             }
                         }
@@ -44,13 +44,31 @@ struct ParentSettingsView: View {
                         }
                     }
 
+                    if let message = store.lastAuthErrorMessage {
+                        StatusBanner(
+                            kind: store.lastAuthErrorIsOffline ? .offline : .failed,
+                            text: message,
+                            size: .parent
+                        )
+                        .padding(.top, FWSpace.s3)
+                    }
+
                     VStack(alignment: .leading, spacing: FWSpace.s3) {
-                        FWButton(title: "添加设备（生成配对码）", tone: .primary, icon: .plus, block: true) {
-                            _ = store.generatePairingCode()
-                            nav.pairingSheet = true
+                        FWButton(
+                            title: "添加设备（生成配对码）",
+                            tone: .primary,
+                            icon: .plus,
+                            block: true,
+                            disabled: store.isAuthBusy
+                        ) {
+                            Task {
+                                if await store.generatePairingCode() != nil {
+                                    nav.pairingSheet = true
+                                }
+                            }
                         }
                         .accessibilityIdentifier("settings.pair")
-                        Text("6 位数字 · 10 分钟过期 · 用一次即作废")
+                        Text(store.pairingHint)
                             .font(FWType.text(FWType.caption, weight: .regular))
                             .foregroundStyle(FWColor.textMuted)
                     }
@@ -107,6 +125,9 @@ struct ParentSettingsView: View {
 
             StatusBanner(kind: .norealmoney, text: "这个 App 只记录数字，不接触银行卡、也不转移现金", size: .parent)
         }
+        .task {
+            await store.refreshDevices()
+        }
         .sheet(isPresented: $pinSheet) {
             VStack(alignment: .leading, spacing: FWSpace.s5) {
                 Text("输入 PIN")
@@ -146,13 +167,13 @@ struct ParentPairingCodeSheet: View {
             Text("给 Forrest 的配对码")
                 .font(FWType.rounded(FWType.title, weight: .heavy))
                 .foregroundStyle(FWColor.textStrong)
-            Text(store.pairingCode ?? SampleData.pairingCode)
+            Text(store.pairingCode ?? "------")
                 .font(FWType.rounded(56, weight: .black))
                 .monospacedDigit()
                 .foregroundStyle(FWColor.spruce700)
                 .tracking(8)
                 .accessibilityIdentifier("pairing.code")
-            Text("6 位数字 · 10 分钟过期 · 用一次即作废")
+            Text(store.pairingHint)
                 .font(FWType.text(FWType.body, weight: .regular))
                 .foregroundStyle(FWColor.textMuted)
                 .multilineTextAlignment(.center)
