@@ -108,18 +108,18 @@ final class SampleStoreTests: XCTestCase {
         XCTAssertEqual(store.lastRecordRejectedReason, "没有写入任何记录 —— 记账必须联网")
     }
 
-    func testBoardToggleSkipsFuture() {
+    func testBoardToggleSkipsFuture() async {
         let store = SampleWalletStore(launchRole: .parent)
         XCTAssertEqual(store.board[0].days[3], .unlogged)
-        store.toggleBoardCell(row: 0, day: 3)
+        await store.toggleBoardCell(row: 0, day: 3)
         XCTAssertEqual(store.board[0].days[3], .done)
-        store.toggleBoardCell(row: 0, day: 3)
+        await store.toggleBoardCell(row: 0, day: 3)
         XCTAssertEqual(store.board[0].days[3], .unlogged)
-        store.toggleBoardCell(row: 0, day: 6)
+        await store.toggleBoardCell(row: 0, day: 6)
         XCTAssertEqual(store.board[0].days[6], .future)
     }
 
-    func testSettlementWritesOnce() {
+    func testSettlementWritesOnce() async {
         let store = SampleWalletStore(launchRole: .parent)
         store.board = store.board.map { item in
             var copy = item
@@ -129,10 +129,23 @@ final class SampleStoreTests: XCTestCase {
         let before = store.balanceCents
         let expected = store.snapshot.settlementTotalCents
         XCTAssertGreaterThan(expected, 0)
-        store.confirmSettlement()
+        await store.confirmSettlement()
         XCTAssertTrue(store.settledThisWeek)
         XCTAssertEqual(store.balanceCents, before + expected)
-        store.confirmSettlement()
+        await store.confirmSettlement()
         XCTAssertEqual(store.balanceCents, before + expected)
+    }
+
+    func testSampleGoalReplaceAndArchiveStayLocal() async {
+        let store = SampleWalletStore(launchRole: .parent)
+        await store.saveGoal(title: "恐龙拼图", targetCents: 6800)
+        XCTAssertEqual(store.goal?.title, "恐龙拼图")
+        XCTAssertEqual(store.goal?.targetCents, 6800)
+        await store.archiveGoal()
+        XCTAssertNil(store.goal)
+        let child = SampleWalletStore(launchRole: .child)
+        await child.saveGoal(title: "不该成功", targetCents: 1000)
+        XCTAssertEqual(child.goal?.title, "乐高赛车")
+        XCTAssertEqual(child.lastRecordRejectedReason, "儿童端不能记账")
     }
 }

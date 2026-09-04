@@ -8,12 +8,16 @@ struct ParentSettleView: View {
         VStack(alignment: .leading, spacing: FWSpace.s5) {
             FWScreenTitle(text: "周日结算", size: .parent)
 
-            if snap.settledThisWeek {
+            if snap.settledThisWeek, store.lastRecordRejectedReason == nil {
                 Celebration(cents: snap.settlementTotalCents, reason: "本周基础零花钱 · 已入账")
             }
 
             FWCard {
-                SettlementSummary(lines: snap.settlementLines, bonus: snap.bonus, size: .parent)
+                SettlementSummary(
+                    lines: snap.settlementLines,
+                    bonus: store.isRemoteAuth ? nil : snap.bonus,
+                    size: .parent
+                )
             }
 
             FWCard(tone: .sunken) {
@@ -23,16 +27,30 @@ struct ParentSettleView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
+            if let reason = store.lastRecordRejectedReason {
+                StatusBanner(
+                    kind: store.lastAuthErrorIsOffline ? .offline : .failed,
+                    text: reason,
+                    size: .parent
+                )
+            } else if let message = store.lastAuthErrorMessage {
+                StatusBanner(
+                    kind: store.lastAuthErrorIsOffline ? .offline : .failed,
+                    text: message,
+                    size: .parent
+                )
+            }
+
             FWButton(
                 title: snap.settledThisWeek
                     ? "本周已入账"
-                    : "确认，记入 +¥\(MoneyFormat.yuanNumber(snap.settlementTotalCents))",
+                    : "确认，记入 +¥\(MoneyFormat.yuanNumber(store.isRemoteAuth ? snap.settlementItemCents : snap.settlementTotalCents))",
                 tone: .accent,
                 icon: .check,
                 block: true,
-                disabled: snap.settledThisWeek || !snap.isOnline
+                disabled: snap.settledThisWeek || !snap.isOnline || store.isAuthBusy
             ) {
-                store.confirmSettlement()
+                Task { await store.confirmSettlement() }
             }
             .accessibilityIdentifier("settle.confirm")
         }

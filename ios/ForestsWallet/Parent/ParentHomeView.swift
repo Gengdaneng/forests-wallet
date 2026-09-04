@@ -3,6 +3,7 @@ import SwiftUI
 struct ParentHomeView: View {
     @Environment(SampleWalletStore.self) private var store
     @Environment(ParentNav.self) private var nav
+    @State private var editingGoal = false
 
     var body: some View {
         let snap = store.snapshot
@@ -69,14 +70,41 @@ struct ParentHomeView: View {
 
             if let goal = snap.goal {
                 FWCard(tone: .honey) {
-                    GoalProgress(
-                        title: goal.title,
-                        savedCents: snap.balanceCents,
-                        targetCents: goal.targetCents,
-                        size: .parent,
-                        reached: snap.goalReached
-                    )
+                    VStack(alignment: .leading, spacing: FWSpace.s3) {
+                        GoalProgress(
+                            title: goal.title,
+                            savedCents: snap.balanceCents,
+                            targetCents: goal.targetCents,
+                            size: .parent,
+                            reached: snap.goalReached
+                        )
+                        if store.isRemoteAuth {
+                            HStack(spacing: FWSpace.s3) {
+                                FWButton(title: "改心愿", tone: .quiet, size: .small) {
+                                    editingGoal = true
+                                }
+                                FWButton(title: "先不攒了", tone: .outline, size: .small, disabled: store.isAuthBusy) {
+                                    Task { await store.archiveGoal() }
+                                }
+                            }
+                        }
+                    }
                 }
+            } else if store.isRemoteAuth {
+                FWButton(title: "设一个心愿", tone: .outline, icon: .target, block: true, disabled: !snap.isOnline || store.isAuthBusy) {
+                    editingGoal = true
+                }
+            }
+
+            if editingGoal {
+                GoalEditor(
+                    goal: snap.goal,
+                    onCancel: { editingGoal = false },
+                    onSave: { title, cents in
+                        editingGoal = false
+                        Task { await store.saveGoal(title: title, targetCents: cents) }
+                    }
+                )
             }
 
             FWCard {
@@ -109,6 +137,47 @@ struct ParentHomeView: View {
     private func settleSubtitle(_ snap: WalletSnapshot) -> String {
         let met = snap.board.filter(\.met).count
         let total = snap.board.count
-        return "\(total) 项达成 \(met) 项 · 本周 ¥\(MoneyFormat.yuanNumber(snap.settlementTotalCents))"
+        return "\(total) 项达成 \(met) 项 · 本周 ¥\(MoneyFormat.yuanNumber(store.isRemoteAuth ? snap.settlementItemCents : snap.settlementTotalCents))"
+    }
+}
+
+private struct GoalEditor: View {
+    var goal: Goal?
+    var onCancel: () -> Void
+    var onSave: (String, Int) -> Void
+
+    @State private var name = ""
+    @State private var yuan = ""
+
+    private var valid: Bool {
+        let y = Int(yuan) ?? 0
+        return !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && y > 0
+    }
+
+    var body: some View {
+        FWCard(tone: .sunken) {
+            VStack(alignment: .leading, spacing: FWSpace.s4) {
+                Text(goal == nil ? "设一个心愿" : "改「\(goal?.title ?? "")」")
+                    .font(FWType.rounded(FWType.head, weight: .bold))
+                    .foregroundStyle(FWColor.textStrong)
+                FWTextField(label: "想攒什么", value: $name, placeholder: "乐高赛车", maxLength: 32)
+                FWTextField(label: "目标（元）", value: $yuan, keyboard: .numberPad)
+                StatusBanner(
+                    kind: .norealmoney,
+                    text: "先不攒了不会把钱花掉。买的时候再用「花掉了」。",
+                    size: .parent
+                )
+                FWButton(title: "保存", tone: .primary, block: true, disabled: !valid) {
+                    onSave(name, (Int(yuan) ?? 0) * 100)
+                }
+                FWButton(title: "取消", tone: .quiet, block: true, action: onCancel)
+            }
+        }
+        .onAppear {
+            if let goal {
+                name = goal.title
+                yuan = "\(MoneyFormat.yuanNumber(goal.targetCents))"
+            }
+        }
     }
 }

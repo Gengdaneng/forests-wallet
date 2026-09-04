@@ -75,13 +75,15 @@ struct ParentRulesView: View {
                             kind: .base
                         )
                     }
-                    RuleRow(
-                        name: "全部达成奖励",
-                        detail: "\(snap.board.count) 项都做到才有",
-                        rewardCents: snap.bonusCents,
-                        size: .parent,
-                        kind: .base
-                    )
+                    if !store.isRemoteAuth {
+                        RuleRow(
+                            name: "全部达成奖励",
+                            detail: "\(snap.board.count) 项都做到才有",
+                            rewardCents: snap.bonusCents,
+                            size: .parent,
+                            kind: .base
+                        )
+                    }
                 }
             }
             StatusBanner(
