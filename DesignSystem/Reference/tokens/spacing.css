@@ -1,0 +1,32 @@
+:root{
+  --space-1:2px;
+  --space-2:4px;
+  --space-3:8px;
+  --space-4:12px;
+  --space-5:16px;
+  --space-6:20px;
+  --space-7:24px;
+  --space-8:32px;
+  --space-9:40px;
+  --space-10:48px;
+  --space-11:64px;
+  --space-12:80px;
+
+  /* Semantic */
+  --gutter-phone:16px;
+  --gutter-pad:32px;
+  --card-pad-parent:16px;
+  --card-pad-child:24px;
+  --stack-tight:8px;
+  --stack:12px;
+  --stack-loose:20px;
+  --section-gap:32px;
+
+  /* Accessibility floor: PRD says 44pt minimum, ship 48–54pt */
+  --touch-min:44px;
+  --touch-parent:48px;
+  --touch-child:54px;
+
+  --max-child-column:720px;
+  --sidebar-pad-width:280px;
+}

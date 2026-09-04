@@ -1,0 +1,101 @@
+:root{
+  /* ── Base palette · spruce (PRD 云杉墨绿) ─────────────────────── */
+  --spruce-900:#0E2A24;
+  --spruce-800:#123329;
+  --spruce-700:#173D35;   /* PRD 云杉墨绿 — primary brand ink */
+  --spruce-600:#245247;
+  --spruce-500:#356B5D;
+  --spruce-300:#7BA79A;
+  --spruce-100:#C3DCD3;
+
+  /* ── Base palette · new leaf (PRD 新叶绿) ────────────────────── */
+  --leaf-500:#4F9E68;
+  --leaf-400:#7FBE8C;
+  --leaf-300:#AFDCAE;
+  --leaf-200:#D8EDD5;     /* PRD 新叶绿 */
+  --leaf-100:#EAF6E7;
+
+  /* ── Base palette · pocket-money honey (PRD 零花钱暖黄) ──────── */
+  --honey-700:#A9741A;
+  --honey-600:#D9A93C;
+  --honey-500:#F3C968;    /* PRD 零花钱暖黄 */
+  --honey-300:#F8DFA4;
+  --honey-100:#FCF1D8;
+
+  /* ── Base palette · journal paper (PRD 手账纸白) ─────────────── */
+  --paper-000:#FFFDF7;
+  --paper-100:#FBF7ED;    /* PRD 手账纸白 */
+  --paper-200:#F4EEDF;
+  --paper-300:#E9E0CB;
+  --paper-400:#D8CCB0;
+
+  /* ── Base palette · clay & signal ────────────────────────────── */
+  --clay-600:#8C6A50;     /* quiet outgoing — spend is never celebrated */
+  --clay-400:#B99274;
+  --clay-100:#EFE2D5;
+  --berry-600:#BE3E2B;    /* debt / negative balance — loud on purpose */
+  --berry-400:#D9705E;
+  --berry-100:#F7E1DC;
+  --slate-600:#3E6E8E;    /* system / offline information, never money */
+  --slate-100:#E1ECF2;
+
+  /* ── Semantic · surfaces ─────────────────────────────────────── */
+  --surface-app:var(--paper-100);
+  --surface-card:var(--paper-000);
+  --surface-sunken:var(--paper-200);
+  --surface-ink:var(--spruce-700);      /* dark card, e.g. balance hero */
+  --surface-leaf:var(--leaf-200);
+  --surface-honey:var(--honey-100);
+  --surface-overlay:rgba(14,42,36,.42);
+
+  /* ── Semantic · text ─────────────────────────────────────────── */
+  --text-body:var(--spruce-800);
+  --text-strong:var(--spruce-900);
+  --text-muted:#6B7C74;
+  --text-faint:#94A39C;
+  --text-on-ink:var(--paper-100);
+  --text-on-ink-muted:rgba(251,247,237,.66);
+  --text-on-honey:var(--spruce-800);
+
+  /* ── Semantic · money direction ──────────────────────────────── */
+  --money-in:var(--leaf-500);
+  --money-in-bg:var(--leaf-100);
+  --money-out:var(--clay-600);
+  --money-out-bg:var(--clay-100);
+  --money-fix:var(--slate-600);          /* 冲正 / 修正 */
+  --money-fix-bg:var(--slate-100);
+  --money-debt:var(--berry-600);
+  --money-debt-bg:var(--berry-100);
+  --money-goal:var(--honey-600);
+  --money-goal-track:var(--honey-100);
+
+  /* ── Semantic · interactive ──────────────────────────────────── */
+  --action-primary:var(--spruce-700);
+  --action-primary-press:var(--spruce-900);
+  --action-primary-text:var(--paper-100);
+  --action-accent:var(--honey-500);
+  --action-accent-press:var(--honey-600);
+  --action-accent-text:var(--spruce-800);
+  --action-quiet-bg:var(--paper-200);
+  --action-quiet-press:var(--paper-300);
+  --action-danger:var(--berry-600);
+  --focus-ring:var(--honey-600);
+  --disabled-bg:var(--paper-300);
+  --disabled-text:var(--text-faint);
+
+  /* ── Semantic · lines ───────────────────────────────────────── */
+  --border-hair:var(--paper-300);
+  --border-card:var(--paper-300);
+  --border-strong:var(--spruce-300);
+  --border-ink:rgba(23,61,53,.14);
+
+  /* ── Semantic · week board tri-state ────────────────────────── */
+  --cell-done-bg:var(--leaf-200);
+  --cell-done-ink:var(--spruce-700);
+  --cell-unlogged-bg:var(--paper-000);
+  --cell-unlogged-line:var(--paper-400);
+  --cell-future-bg:var(--paper-200);
+  --cell-future-ink:var(--text-faint);
+  --cell-missed-bg:var(--clay-100);
+  --cell-missed-ink:var(--clay-600);
+}

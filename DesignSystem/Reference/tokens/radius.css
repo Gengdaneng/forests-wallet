@@ -1,0 +1,14 @@
+:root{
+  --radius-xs:6px;
+  --radius-sm:10px;   /* week-board cells */
+  --radius-md:16px;   /* parent cards (PRD 16–20pt) */
+  --radius-lg:20px;
+  --radius-xl:24px;   /* child cards (PRD ~24pt) */
+  --radius-2xl:32px;  /* child hero / sheets */
+  --radius-pill:999px;
+
+  --radius-card-parent:var(--radius-md);
+  --radius-card-child:var(--radius-xl);
+  --radius-control:var(--radius-md);
+  --radius-cell:var(--radius-sm);
+}

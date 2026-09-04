@@ -1,0 +1,33 @@
+<!-- @dsCard group="Components" viewport="700x400" name="Money" subtitle="Balance hero, amounts, ledger rows, goal progress, visible cost" -->
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;padding:18px 20px;background:var(--surface-app);font-family:var(--font-text)}.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}.col{display:flex;flex-direction:column;gap:14px}.lbl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);font-family:var(--font-rounded)}</style></head><body><div id="root"></div>
+<script type="text/babel">
+const { BalanceHero, AmountText, TransactionRow, GoalProgress, CostHint, Card } = window.ForrestSWalletDesignSystem_2e3ae3;
+
+function Demo(){return(<div className="col">
+  <div className="row" style={{alignItems:'stretch'}}>
+    <BalanceHero cents={8700} size="parent" style={{flex:1}} note="1:1 对应他真实拥有的零花钱"/>
+    <BalanceHero cents={-2000} size="parent" style={{flex:1}}/>
+  </div>
+  <div className="row" style={{gap:20}}>
+    <AmountText cents={1000} direction="in"/><AmountText cents={1500} direction="out"/>
+    <AmountText cents={300} direction="fix"/><AmountText cents={-2000} direction="debt"/>
+    <AmountText cents={8700} direction="flat" size="heroSm" showSign={false}/>
+  </div>
+  <Card><div style={{display:'grid'}}>
+    <TransactionRow size="parent" reason="本周基础零花钱" cents={1000} direction="in" date="10月5日" balanceAfter={8700}/>
+    <TransactionRow size="parent" reason="买冰淇淋" cents={1500} direction="out" category="food" date="10月3日" balanceAfter={7700}/>
+    <TransactionRow size="parent" reason="更正：记错了" cents={300} direction="fix" date="10月2日" balanceAfter={9200}/>
+    <TransactionRow size="parent" reason="乐高小车" cents={1400} direction="out" category="toy" date="10月1日" reversed/>
+  </div></Card>
+  <Card tone="honey"><GoalProgress size="parent" title="乐高赛车" savedCents={8700} targetCents={40000}/></Card>
+  <CostHint cents={1500} goalTitle="乐高赛车"/>
+</div>)}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script></body></html>

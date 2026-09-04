@@ -1,0 +1,45 @@
+<!-- @dsCard group="Components" viewport="700x300" name="Core" subtitle="Buttons, icon buttons, cards, badges and category tags" -->
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;padding:18px 20px;background:var(--surface-app);font-family:var(--font-text)}.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}.col{display:flex;flex-direction:column;gap:14px}.lbl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);font-family:var(--font-rounded)}</style></head><body><div id="root"></div>
+<script type="text/babel">
+const { Button, IconButton, Card, Badge, Tag, CATEGORIES } = window.ForrestSWalletDesignSystem_2e3ae3;
+
+function Demo(){return(<div className="col">
+  <div><div className="lbl">Button · tones</div><div className="row" style={{marginTop:8}}>
+    <Button tone="primary" icon="check">确认记录</Button>
+    <Button tone="accent" icon="plus">加进来</Button>
+    <Button tone="quiet">取消</Button>
+    <Button tone="outline" icon="rotate-ccw">更正这笔</Button>
+    <Button tone="primary" disabled>离线不能记</Button>
+  </div></div>
+  <div><div className="lbl">Sizes · child 54 / parent 48 / small 36 &nbsp;·&nbsp; IconButton</div><div className="row" style={{marginTop:8}}>
+    <Button size="child" tone="accent">大按钮</Button>
+    <Button size="parent">中按钮</Button>
+    <Button size="small" tone="quiet">小</Button>
+    <IconButton icon="chevron-left" label="返回"/>
+    <IconButton icon="plus" label="记一笔" tone="accent"/>
+    <IconButton icon="settings" label="设置" tone="bare"/>
+  </div></div>
+  <div className="row" style={{alignItems:'stretch'}}>
+    <Card style={{flex:1}}><div className="lbl">Card · paper</div><div style={{marginTop:6,fontWeight:600}}>16px radius · 家长卡片</div></Card>
+    <Card tone="leaf" variant="child" style={{flex:1}}><div className="lbl">leaf</div><div style={{marginTop:6,fontWeight:600}}>24px radius · 儿童卡片</div></Card>
+    <Card tone="honey" style={{flex:1}}><div className="lbl">honey</div><div style={{marginTop:6,fontWeight:600}}>零花钱 / 目标</div></Card>
+    <Card tone="ink" style={{flex:1}}><div className="lbl" style={{color:'var(--text-on-ink-muted)'}}>ink</div><div style={{marginTop:6,fontWeight:600}}>余额</div></Card>
+  </div>
+  <div className="row">
+    <Badge tone="in" icon="arrow-down-left">加进来了</Badge>
+    <Badge tone="out" icon="arrow-up-right">花掉了</Badge>
+    <Badge tone="fix" icon="rotate-ccw">已改正</Badge>
+    <Badge tone="debt" icon="alert-triangle">欠爸爸</Badge>
+    <Badge tone="neutral" icon="clock">还没记</Badge>
+    {CATEGORIES.slice(0,4).map(c=><Tag key={c.id} category={c.id} selected={c.id==='toy'}/>)}
+  </div>
+</div>)}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script></body></html>

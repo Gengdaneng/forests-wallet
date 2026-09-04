@@ -17,6 +17,10 @@ See `docs/development.md` for roles, migrations, and local Docker tests.
 - Operations files (`compose.yaml`, `Caddyfile`, `.env.example`, `ops/`, `docs/operations.md`) are owned elsewhere.
 - The root `README.md` is the PRD; do not silently absorb architecture-review edits into it.
 
+## iOS
+
+Native SwiftUI UI is in `ios/` (universal iPhone parent / iPad child, sample data only). Design-system source is `DesignSystem/Reference/` — design input, do not execute bundled JS. See `ios/README.md`.
+
 ## Maintaining this file
 
 Keep this file for knowledge useful to almost every future agent session in this project.

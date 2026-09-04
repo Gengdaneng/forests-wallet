@@ -1,0 +1,22 @@
+<!-- @dsCard group="Motion" viewport="700x180" name="Durations & easings" subtitle="Gentle, short; the bounce is reserved for income" -->
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css">
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.js"></script>
+<style>body{margin:0;padding:16px 20px;background:var(--surface-app);color:var(--text-body);font-family:var(--font-text);min-height:180px;box-sizing:border-box}
+.sw{display:flex;gap:10px;flex-wrap:wrap}.chip{border-radius:var(--radius-sm);padding:10px 12px;min-width:96px;font-family:var(--font-rounded);font-weight:700;font-size:12px;line-height:1.35}
+.chip b{display:block;font-size:13px}.chip code{font-family:var(--font-mono);font-size:10px;opacity:.8;font-weight:400}
+.k{font-family:var(--font-mono);font-size:11px;color:var(--text-muted)}
+.lb{font-family:var(--font-rounded);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin-bottom:10px}
+.rw{display:flex;align-items:center;gap:14px;flex-wrap:wrap}</style></head>
+<body><div style="display:grid;gap:9px">
+<div style="display:flex;align-items:center;gap:14px"><code class="k" style="width:130px">--dur-instant</code>
+<span style="font-family:var(--font-rounded);font-weight:800;font-size:15px;width:70px">120ms</span>
+<span style="flex:1;font-size:14px">按下反馈</span><code class="k">ease-standard</code></div><div style="display:flex;align-items:center;gap:14px"><code class="k" style="width:130px">--dur-fast</code>
+<span style="font-family:var(--font-rounded);font-weight:800;font-size:15px;width:70px">200ms</span>
+<span style="flex:1;font-size:14px">切换 / 格子翻面</span><code class="k">ease-standard</code></div><div style="display:flex;align-items:center;gap:14px"><code class="k" style="width:130px">--dur-base</code>
+<span style="font-family:var(--font-rounded);font-weight:800;font-size:15px;width:70px">320ms</span>
+<span style="flex:1;font-size:14px">页面推入 / 弹层</span><code class="k">ease-out</code></div><div style="display:flex;align-items:center;gap:14px"><code class="k" style="width:130px">--dur-slow</code>
+<span style="font-family:var(--font-rounded);font-weight:800;font-size:15px;width:70px">520ms</span>
+<span style="flex:1;font-size:14px">余额与进度条增长</span><code class="k">ease-out</code></div><div style="display:flex;align-items:center;gap:14px"><code class="k" style="width:130px">--dur-celebrate</code>
+<span style="font-family:var(--font-rounded);font-weight:800;font-size:15px;width:70px">900ms</span>
+<span style="flex:1;font-size:14px">收入庆祝（仅此一处）</span><code class="k">ease-bounce</code></div>
+</div><div class="k" style="margin-top:10px">prefers-reduced-motion 下全部归零，庆祝改为静态卡片</div><script>lucide.createIcons()</script></body></html>

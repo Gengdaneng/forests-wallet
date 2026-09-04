@@ -1,0 +1,26 @@
+<!-- @dsCard group="Components" viewport="700x340" name="Navigation" subtitle="Screen header, iPad sidebar, iPhone tab bar" -->
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;padding:18px 20px;background:var(--surface-app);font-family:var(--font-text)}.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}.col{display:flex;flex-direction:column;gap:14px}.lbl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);font-family:var(--font-rounded)}</style></head><body><div id="root"></div>
+<script type="text/babel">
+const { NavHeader, Sidebar, TabBar, Badge, Card } = window.ForrestSWalletDesignSystem_2e3ae3;
+
+const nav=[{id:'home',label:'我的钱',icon:'wallet'},{id:'board',label:'本周看板',icon:'calendar-check'},{id:'rules',label:'规则',icon:'scroll-text'},{id:'all',label:'全部流水',icon:'list'},{id:'wish',label:'已实现的心愿',icon:'sparkles'}];
+const tabs=[{id:'home',label:'首页',icon:'wallet'},{id:'board',label:'看板',icon:'calendar-check'},{id:'add',label:'记一笔',icon:'plus'},{id:'hist',label:'流水',icon:'list'},{id:'set',label:'设置',icon:'settings'}];
+function Demo(){const [a,setA]=React.useState('board');const [t,setT]=React.useState('home');
+ return(<div className="col">
+  <Card style={{padding:0,overflow:'hidden'}}><NavHeader size="parent" title="本周看板" onBack={()=>{}} action={<Badge tone="neutral" icon="eye">只能看</Badge>}/></Card>
+  <div className="row" style={{alignItems:'stretch',gap:16}}>
+    <div style={{borderRadius:'var(--radius-lg)',overflow:'hidden',height:220}}><Sidebar items={nav} active={a} onSelect={setA}/></div>
+    <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',borderRadius:'var(--radius-lg)',overflow:'hidden',border:'1px solid var(--border-card)'}}>
+      <TabBar items={tabs} active={t} center="add" onSelect={setT}/>
+    </div>
+  </div>
+</div>)}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script></body></html>

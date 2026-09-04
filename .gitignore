@@ -9,3 +9,10 @@ coverage/
 tmp/
 .idea/
 .vscode/
+
+xcuserdata/
+DerivedData/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+build/

@@ -1,0 +1,47 @@
+<!-- @dsCard group="爸爸 · iPhone" viewport="393x852" name="爸爸的 iPhone（唯一写入者）" subtitle="Entry in 3 taps, corrections, week board, Sunday settlement, settings" -->
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><title>Forrest's Wallet · iPhone</title>
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="../data.js"></script>
+<style>html,body{margin:0;height:100%}body{background:var(--surface-app);overflow:hidden}#root{height:100vh;display:flex;flex-direction:column}</style></head>
+<body><div id="root"></div>
+<script type="text/babel" src="parent-home.jsx"></script>
+<script type="text/babel" src="entry-flow.jsx"></script>
+<script type="text/babel" src="other-screens.jsx"></script>
+<script type="text/babel">
+const { TabBar } = window.ForrestSWalletDesignSystem_2e3ae3;
+const TABS=[{id:'home',label:'首页',icon:'wallet'},{id:'board',label:'看板',icon:'calendar-check'},{id:'add',label:'记一笔',icon:'plus'},{id:'hist',label:'记录',icon:'list'},{id:'set',label:'设置',icon:'settings'}];
+function App(){
+  const [tab,setTab]=React.useState('home');
+  const [entry,setEntry]=React.useState(null);
+  const [settled,setSettled]=React.useState(false);
+  const [settleView,setSettleView]=React.useState(false);
+  const [online]=React.useState(true);
+  const data=window.FWData;
+  const [items,setItems]=React.useState(data.board);
+  const [bonusCents,setBonusCents]=React.useState(300);
+  if(entry) return <div style={{height:'100vh',background:'var(--surface-app)'}}>
+    <EntryFlow direction={entry} goalTitle={data.goal.title} onCancel={()=>setEntry(null)} onDone={()=>{setEntry(null);setTab('home')}}/></div>;
+  const body = settleView ? <ParentSettle done={settled} onConfirm={()=>setSettled(true)} items={items} bonusCents={bonusCents}/>
+    : {home:<ParentHome data={data} online={online} onEntry={setEntry} onSettle={()=>setSettleView(true)} onOpen={()=>setTab('hist')}/>,
+       board:<ParentBoard items={items} setItems={setItems} bonusCents={bonusCents} setBonusCents={setBonusCents}/>,
+       hist:<ParentHistory data={data}/>,
+       rules:<ParentRules data={data} items={items} bonusCents={bonusCents}/>, set:<ParentSettings/>}[tab];
+  return (<React.Fragment>
+    <div style={{flex:1,overflowY:'auto',padding:'var(--space-6) var(--gutter-phone) var(--space-6)'}}>
+      {settleView? <div style={{marginBottom:'var(--space-4)'}}>
+        <button onClick={()=>setSettleView(false)} style={{border:'none',background:'transparent',color:'var(--spruce-600)',fontFamily:'var(--font-rounded)',fontWeight:700,fontSize:15,cursor:'pointer',padding:0}}>← 返回首页</button></div>:null}
+      {body}
+      {tab==='set'&&!settleView? <div style={{marginTop:'var(--space-5)'}}>
+        <button onClick={()=>setTab('rules')} style={{border:'none',background:'transparent',color:'var(--spruce-600)',fontFamily:'var(--font-rounded)',fontWeight:700,fontSize:15,cursor:'pointer',padding:0}}>规则清单 →</button></div>:null}
+    </div>
+    <TabBar items={TABS} active={settleView?'home':tab} center="add"
+      onSelect={(id)=>{setSettleView(false); id==='add'?setEntry('in'):setTab(id)}}/>
+  </React.Fragment>);
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>
